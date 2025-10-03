@@ -1,0 +1,830 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Dashboard - Generated 2025-09-17 14:18</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #4f46e5, #06b6d4);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        
+        .stats-section {
+            padding: 40px;
+            background: #f8fafc;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 15px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 100px;
+            height: 100px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 50%;
+            transform: translate(30px, -30px);
+        }
+        
+        .stat-card h3 {
+            font-size: 1.2rem;
+            margin-bottom: 10px;
+            opacity: 0.9;
+        }
+        
+        .stat-card .number {
+            font-size: 2.5rem;
+            font-weight: 700;
+        }
+        
+        .charts-section {
+            padding: 40px;
+            background: white;
+        }
+        
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 30px;
+        }
+        
+        .chart-container {
+            background: #f9fafb;
+            padding: 25px;
+            border-radius: 15px;
+            border: 1px solid #e5e7eb;
+        }
+        
+        .chart-container h3 {
+            margin-bottom: 20px;
+            color: #1e293b;
+            font-size: 1.3rem;
+        }
+        
+        .table-section {
+            padding: 40px;
+            background: white;
+        }
+        
+        .table-container {
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .table-header {
+            background: #f8fafc;
+            padding: 20px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        .table-wrapper {
+            overflow-x: auto;
+            max-height: 600px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        th {
+            background: #f8fafc;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        
+        tr:hover {
+            background: #f9fafb;
+        }
+        
+        .search-box {
+            margin-bottom: 20px;
+            padding: 12px;
+            width: 300px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+        
+        .search-box:focus {
+            outline: none;
+            border-color: #4f46e5;
+        }
+        
+        .footer {
+            background: #1f2937;
+            color: white;
+            text-align: center;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Project Dashboard</h1>
+            <p>Generated on September 17, 2025 at 02:18 PM</p>
+            <p>Total Projects: 52 | Data Source: Offline Analysis</p>
+        </div>
+        
+        <div class="stats-section">
+            <h2 style="margin-bottom: 20px; color: #1e293b;">Key Metrics</h2>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>Total Projects</h3>
+                    <div class="number">52</div>
+                </div>
+                
+                <div class="stat-card">
+                    <h3>Data Columns</h3>
+                    <div class="number">6</div>
+                </div>
+                
+                <div class="stat-card">
+                    <h3>Average Progress</h3>
+                    <div class="number">N/A%</div>
+                </div>
+                
+                <div class="stat-card">
+                    <h3>Total Budget</h3>
+                    <div class="number">$0</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="charts-section">
+            <h2 style="margin-bottom: 20px; color: #1e293b;">Visual Analysis</h2>
+            <div class="charts-grid">
+                <div class="chart-container">
+                    <h3>Project Status Distribution</h3>
+                    <canvas id="statusChart" width="400" height="200"></canvas>
+                </div>
+                
+                <div class="chart-container">
+                    <h3>Progress Overview</h3>
+                    <canvas id="progressChart" width="400" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <div class="table-section">
+            <div class="table-container">
+                <div class="table-header">
+                    <h3 style="margin: 0;">Project Details</h3>
+                    <br>
+                    <input type="text" class="search-box" id="searchBox" placeholder="Search projects..." onkeyup="searchTable()">
+                </div>
+                
+                <div class="table-wrapper">
+                    <table id="projectTable">
+                        <thead>
+                            <tr id="tableHeader"></tr>
+                        </thead>
+                        <tbody id="tableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>Generated by Offline Project Dashboard Tool</p>
+            <p>Data is processed locally and never leaves your computer</p>
+        </div>
+    </div>
+
+    <script>
+        const tableData = [
+  {
+    "project_name": "",
+    "status": "FEED competition ongoing",
+    "end_date": "1. Integrated Subsea Production System (SPS) + Subsea Umbilicals, Risers & Flowlines (SURF)",
+    "description": "Parallel FEEDs planned. 2 bidders expected to be selected.",
+    "Scope of Work": "Design and engineering for subsea infrastructure to connect wells to FPSO",
+    "Bidders / Participants": "- OneSubsea alliance- TechnipFMC- McDermott International & Baker Hughes (grouping)"
+  },
+  {
+    "project_name": "",
+    "status": "FEED competition ongoing",
+    "end_date": "2. Gas Export Pipeline (GEP)",
+    "description": "2 bidders expected to be selected.",
+    "Scope of Work": "Design and engineering for offshore gas pipeline to onshore receiving facility",
+    "Bidders / Participants": "- Saipem- McDermott International- Allseas & Timas Suplindo (grouping)"
+  },
+  {
+    "project_name": "",
+    "status": "FEED competition ongoing",
+    "end_date": "3. Floating Production, Storage & Offloading (FPSO)",
+    "description": "Capacity: 300 MMcfd gas + 6000 bpd oil. Both conversion and redeployment options considered.",
+    "Scope of Work": "Design and engineering of a leased Suezmax-sized FPSO to process gas & oil",
+    "Bidders / Participants": "Not explicitly listed in article, but \u201cleading contractors\u201d are pursuing it"
+  },
+  {
+    "project_name": "Link to Source",
+    "status": "Location",
+    "end_date": "Client",
+    "description": "Date of Award",
+    "Scope of Work": "Project / Field",
+    "Bidders / Participants": "Contract Type"
+  },
+  {
+    "project_name": "Subsea7 Press Release",
+    "status": "Offshore Saudi Arabia",
+    "end_date": "Aramco",
+    "description": "September 14, 2025",
+    "Scope of Work": "Multiple facilities (Safaniyah, Marjan, Zuluf, Berri)",
+    "Bidders / Participants": "Major ($750M \u2013 $1.25B)"
+  },
+  {
+    "project_name": "Subsea7 Press Release",
+    "status": "Offshore Saudi Arabia",
+    "end_date": "Aramco",
+    "description": "December 12, 2024",
+    "Scope of Work": "Abu Safah Field",
+    "Bidders / Participants": "Substantial ($150M \u2013 $300M)"
+  },
+  {
+    "project_name": "Subsea7 Press Release",
+    "status": "Offshore Saudi Arabia",
+    "end_date": "Aramco",
+    "description": "September 10, 2019",
+    "Scope of Work": "Marjan Increment Projects \u2013 Package 2",
+    "Bidders / Participants": "Large ($300M \u2013 $500M)"
+  },
+  {
+    "project_name": "Timeline",
+    "status": "Capacity (mtpa)",
+    "end_date": "Project",
+    "description": "Status",
+    "Scope of Work": "Stakeholders",
+    "Bidders / Participants": "Investment"
+  },
+  {
+    "project_name": "By early 2030s",
+    "status": "Part of total 65 mtpa expansion",
+    "end_date": "North Field East (NFE)",
+    "description": "FID approved, in execution",
+    "Scope of Work": "QatarEnergy (state-owned)",
+    "Bidders / Participants": ""
+  },
+  {
+    "project_name": "By early 2030s",
+    "status": "Part of total 65 mtpa expansion",
+    "end_date": "North Field South (NFS)",
+    "description": "FID approved, in execution",
+    "Scope of Work": "QatarEnergy",
+    "Bidders / Participants": ""
+  },
+  {
+    "project_name": "TBD",
+    "status": "16 mtpa (2 x 8 mtpa trains)",
+    "end_date": "North Field West (NFW)",
+    "description": "Pre-FID (announced Feb 2024)",
+    "Scope of Work": "QatarEnergy",
+    "Bidders / Participants": ">$20 billion"
+  },
+  {
+    "project_name": "By early 2030s",
+    "status": "Increase from 77 mtpa \u2192 142 mtpa",
+    "end_date": "Overall Expansion",
+    "description": "NFE & NFS under execution",
+    "Scope of Work": "QatarEnergy",
+    "Bidders / Participants": ""
+  },
+  {
+    "project_name": "Timeline",
+    "status": "Capacity (mtpa)",
+    "end_date": "Project",
+    "description": "Status",
+    "Scope of Work": "Stakeholders",
+    "Bidders / Participants": "Investment"
+  },
+  {
+    "project_name": "Operational by ~2028",
+    "status": "9.6 mtpa",
+    "end_date": "Ruwais LNG",
+    "description": "FID taken (June 2024); EPC awarded",
+    "Scope of Work": "Adnoc (60%, to be transferred to Adnoc Gas in 2028), Mitsui, BP, Shell, TotalEnergies (10% each)",
+    "Bidders / Participants": "$5.5 billion EPC"
+  },
+  {
+    "project_name": "H2 2028",
+    "status": "",
+    "end_date": "Adnoc Gas Transfer",
+    "description": "Planned",
+    "Scope of Work": "Internal (Adnoc to Adnoc Gas)",
+    "Bidders / Participants": "~$5 billion (estimated value of 60% stake)"
+  },
+  {
+    "project_name": "Timeline",
+    "status": "Capacity (mtpa)",
+    "end_date": "Project",
+    "description": "Status",
+    "Scope of Work": "Stakeholders",
+    "Bidders / Participants": "Investment"
+  },
+  {
+    "project_name": "Operational by 2029",
+    "status": "+3.8 mtpa (to total 15.2 mtpa)",
+    "end_date": "Qalhat LNG (4th Train)",
+    "description": "Pre-EPC, expected to move soon",
+    "Scope of Work": "Oman LNG: Oman Investment Authority (51%), Shell (30%), TotalEnergies (5.54%), Korea LNG (5%), Mitsubishi (2.77%), Mitsui (2.77%), Itochu (0.92%), PTTEP (2%)",
+    "Bidders / Participants": ""
+  },
+  {
+    "project_name": "Production starts Q1 2028",
+    "status": "1 mtpa",
+    "end_date": "Marsa LNG",
+    "description": "FID taken; EPC contracts to Technip Energies & CB&I; groundbreaking done",
+    "Scope of Work": "TotalEnergies (80%), OQEP (20%)",
+    "Bidders / Participants": ""
+  },
+  {
+    "project_name": "From Q1 2028",
+    "status": "150 MMcfd",
+    "end_date": "Mabrouk North-East (Gas Feedstock)",
+    "description": "Supplying Marsa LNG",
+    "Scope of Work": "Marsa holds 33.19%",
+    "Bidders / Participants": ""
+  },
+  {
+    "project_name": "",
+    "status": "",
+    "end_date": "",
+    "description": "",
+    "Scope of Work": "",
+    "Bidders / Participants": ""
+  },
+  {
+    "project_name": "Timeline / Notes",
+    "status": "Key Details / Facilities",
+    "end_date": "Type",
+    "description": "Estimated Value",
+    "Scope of Work": "Scope/Objective",
+    "Bidders / Participants": "Contractors / Status"
+  },
+  {
+    "project_name": "Ongoing development",
+    "status": "Part of Adnoc\u2019s broader gas expansion strategy",
+    "end_date": "Offshore Gas",
+    "description": "Not specified",
+    "Scope of Work": "Offshore gas production",
+    "Bidders / Participants": "Not specified"
+  },
+  {
+    "project_name": "Progressing in parallel",
+    "status": "One of the world's largest offshore sour gas projects",
+    "end_date": "Offshore Sour Gas",
+    "description": "~$10 billion+ (previous est.)",
+    "Scope of Work": "High-sulfur gas field development",
+    "Bidders / Participants": "Major FEED/EPC players previously involved"
+  },
+  {
+    "project_name": "FID expected 2026, operational by 2030",
+    "status": "Connected to upstream oil & gas fieldExpected to produce significant condensate volumes",
+    "end_date": "Onshore Gas Cap",
+    "description": "$3\u20134 billion",
+    "Scope of Work": "Gas cap development with CTU and possible condensate output",
+    "Bidders / Participants": "FEED awarded to Worley"
+  },
+  {
+    "project_name": "Core Adnoc infrastructure",
+    "status": "Gas from Umm Shaif transported here via MGL/IGL pipeline",
+    "end_date": "Export Hub",
+    "description": "Not project-specific",
+    "Scope of Work": "Receiving, processing, and exporting gas from offshore fields",
+    "Bidders / Participants": "Owned/operated by Adnoc"
+  },
+  {
+    "project_name": "",
+    "status": "",
+    "end_date": "",
+    "description": "",
+    "Scope of Work": "",
+    "Bidders / Participants": ""
+  },
+  {
+    "project_name": "",
+    "status": "Size / Importance",
+    "end_date": "Scope / Key Components",
+    "description": "",
+    "Scope of Work": "Key Bidders / Consortia",
+    "Bidders / Participants": "Field"
+  },
+  {
+    "project_name": "",
+    "status": "Major offshore infrastructure",
+    "end_date": "- 2 gas producer wellhead towers (GP-1, GP-2)- 1 gas injection tower- Offshore separation unit- Subsea cables/pipelines- CTU, utilities, brownfield",
+    "description": "",
+    "Scope of Work": "- NMDC Energy + HD Hyundai Heavy Industries- Larsen & Toubro (L&T) + Lamprell",
+    "Bidders / Participants": "UMM SHAIF"
+  },
+  {
+    "project_name": "",
+    "status": "Onshore processing & pipelines",
+    "end_date": "- New CTU plant (onshore)- Tie-ins to existing facilities- 18-inch condensate pipeline from landfall to CTU- Brownfield work",
+    "description": "",
+    "Scope of Work": "- Target Engineering (UAE)- Archirodon (Greece)- Petrofac (UK)- Galfar (Oman)- CPECC",
+    "Bidders / Participants": "UMM SHAIF"
+  },
+  {
+    "project_name": "",
+    "status": "Largest of all three packages",
+    "end_date": "- New SPB offshore platform- Bridge from IGD-HAP to SPB- Wet gas compressor- Associated infrastructure",
+    "description": "",
+    "Scope of Work": "- Hyundai HI + NMDC Energy- L&T + Lamprell- McDermott- COOEC (China)- Seatrium (TBD)",
+    "Bidders / Participants": "UMM SHAIF"
+  },
+  {
+    "project_name": "",
+    "status": "",
+    "end_date": "",
+    "description": "",
+    "Scope of Work": "",
+    "Bidders / Participants": ""
+  },
+  {
+    "project_name": "",
+    "status": "Scope",
+    "end_date": "Role",
+    "description": "",
+    "Scope of Work": "Project",
+    "Bidders / Participants": ""
+  },
+  {
+    "project_name": "",
+    "status": "Front-End Engineering & Design (FEED) for integrated gas cap facilities",
+    "end_date": "FEED Contractor",
+    "description": "",
+    "Scope of Work": "Umm Shaif & Bab Gas Cap",
+    "Bidders / Participants": ""
+  },
+  {
+    "project_name": "",
+    "status": "Defined FEED scope after initial conceptual study",
+    "end_date": "Conceptual Design / Pre-FEED",
+    "description": "",
+    "Scope of Work": "Umm Shaif",
+    "Bidders / Participants": ""
+  },
+  {
+    "project_name": "",
+    "status": "",
+    "end_date": "",
+    "description": "",
+    "Scope of Work": "",
+    "Bidders / Participants": ""
+  },
+  {
+    "project_name": "",
+    "status": "Scope / Description",
+    "end_date": "Block / Field",
+    "description": "Remarks",
+    "Scope of Work": "Contract Type",
+    "Bidders / Participants": "Status"
+  },
+  {
+    "project_name": "",
+    "status": "Replacement of risers; includes umbilicals and flowlines",
+    "end_date": "Block K (Kikeh Project)",
+    "description": "Aims to enhance gas production from deepwater assets",
+    "Scope of Work": "SURF (Subsea Umbilicals, Risers, Flowlines)",
+    "Bidders / Participants": "Tender floated; bids expected later in 2025"
+  },
+  {
+    "project_name": "",
+    "status": "Subsea well systems similar to Block H expansion",
+    "end_date": "Block K (Kikeh Project)",
+    "description": "Similar to Block H expansion scheme",
+    "Scope of Work": "SPS (Subsea Production System)",
+    "Bidders / Participants": "Tender floated; bids expected later in 2025"
+  },
+  {
+    "project_name": "",
+    "status": "Replacement of existing Kikeh FPSO",
+    "end_date": "Block K (Kikeh Project)",
+    "description": "Part of infrastructure upgrade at Block K",
+    "Scope of Work": "FPSO Replacement",
+    "Bidders / Participants": "Tender process ongoing"
+  },
+  {
+    "project_name": "",
+    "status": "Subsea infrastructure for Phase 1B expansion",
+    "end_date": "Block H (Alum, Bemban, Permai)",
+    "description": "Part of new development phase to supply PFLNG Dua",
+    "Scope of Work": "SURF",
+    "Bidders / Participants": "Award pending; expected soon"
+  },
+  {
+    "project_name": "",
+    "status": "Subsea production system for Phase 1B",
+    "end_date": "Block H (Alum, Bemban, Permai)",
+    "description": "Associated with SURF package above",
+    "Scope of Work": "SPS",
+    "Bidders / Participants": "Award pending; expected soon"
+  },
+  {
+    "project_name": "",
+    "status": "",
+    "end_date": "",
+    "description": "",
+    "Scope of Work": "",
+    "Bidders / Participants": ""
+  },
+  {
+    "project_name": "Notes",
+    "status": "Type",
+    "end_date": "Package Name",
+    "description": "Likely / Confirmed Bidders / Contractors",
+    "Scope of Work": "Scope of Work",
+    "Bidders / Participants": "Status"
+  },
+  {
+    "project_name": "Critical first contract; will set course for rest of project",
+    "status": "Offshore EPCI",
+    "end_date": "EPCI Package 1",
+    "description": "\u2705 L&T (Larsen & Toubro) \u2014 lowest bidder and frontrunner",
+    "Scope of Work": "- At least 7 offshore wellhead jackets",
+    "Bidders / Participants": "Award expected in weeks"
+  },
+  {
+    "project_name": "Part of restructured Package 2; split to simplify scope",
+    "status": "Offshore EPCI",
+    "end_date": "EPCI 2A (New split)",
+    "description": "TBD (No bidders mentioned yet)",
+    "Scope of Work": "- Gas wellhead topsides- Flowlines- Umbilicals",
+    "Bidders / Participants": "In rework phase"
+  },
+  {
+    "project_name": "Very large; involves major fabrication",
+    "status": "Offshore EPCI",
+    "end_date": "EPCI 2B (New split)",
+    "description": "TBD",
+    "Scope of Work": "- Central Gathering Platform Complex",
+    "Bidders / Participants": "In rework phase"
+  },
+  {
+    "project_name": "Split from original 2A/2B for manageability",
+    "status": "Offshore EPCI",
+    "end_date": "EPCI 2C (New split)",
+    "description": "TBD",
+    "Scope of Work": "- Export pipelines- Cables",
+    "Bidders / Participants": "In rework phase"
+  },
+  {
+    "project_name": "Now being broken into 2A, 2B, and 2C",
+    "status": "Offshore EPCI",
+    "end_date": "Original Package 2A",
+    "description": "Original bidders not disclosed",
+    "Scope of Work": "- Offshore facilities and subsea pipelines",
+    "Bidders / Participants": "Being split"
+  },
+  {
+    "project_name": "See above",
+    "status": "Offshore EPCI",
+    "end_date": "Original Package 2B",
+    "description": "Original bidders not disclosed",
+    "Scope of Work": "- Offshore facilities and subsea pipelines",
+    "Bidders / Participants": "Being split"
+  },
+  {
+    "project_name": "Supports offshore gas production; MEG used to prevent hydrates",
+    "status": "Onshore EPC",
+    "end_date": "Onshore Package",
+    "description": "Not disclosed",
+    "Scope of Work": "- MEG recovery plant- Water treatment facilities- Related infrastructure",
+    "Bidders / Participants": "Tenders issued"
+  },
+  {
+    "project_name": "Likely to be bid separately by Saudi Arabia",
+    "status": "Onshore EPC",
+    "end_date": "Saudi Gas Processing Plant",
+    "description": "Not yet tendered",
+    "Scope of Work": "- To process Saudi share of Dorra\u2019s output",
+    "Bidders / Participants": "Expected"
+  },
+  {
+    "project_name": "Likely to be bid separately by Kuwait",
+    "status": "Onshore EPC",
+    "end_date": "Kuwaiti Gas Processing Plant",
+    "description": "Not yet tendered",
+    "Scope of Work": "- To process Kuwait share of Dorra\u2019s output",
+    "Bidders / Participants": "Expected"
+  }
+];
+        const chartData = {
+  "status_labels": [
+    "Offshore EPCI",
+    "FEED competition ongoing",
+    "Capacity (mtpa)",
+    "Offshore Saudi Arabia",
+    "Onshore EPC",
+    "Part of total 65 mtpa expansion",
+    "Location",
+    "16 mtpa (2 x 8 mtpa trains)",
+    "+3.8 mtpa (to total 15.2 mtpa)",
+    "1 mtpa",
+    "150 MMcfd",
+    "Key Details / Facilities",
+    "Part of Adnoc\u2019s broader gas expansion strategy",
+    "One of the world's largest offshore sour gas projects",
+    "Increase from 77 mtpa \u2192 142 mtpa",
+    "9.6 mtpa",
+    "Gas from Umm Shaif transported here via MGL/IGL pipeline",
+    "Connected to upstream oil & gas fieldExpected to produce significant condensate volumes",
+    "Size / Importance",
+    "Major offshore infrastructure",
+    "Scope",
+    "Front-End Engineering & Design (FEED) for integrated gas cap facilities",
+    "Onshore processing & pipelines",
+    "Largest of all three packages",
+    "Scope / Description",
+    "Defined FEED scope after initial conceptual study",
+    "Replacement of risers; includes umbilicals and flowlines",
+    "Subsea well systems similar to Block H expansion",
+    "Subsea infrastructure for Phase 1B expansion",
+    "Replacement of existing Kikeh FPSO",
+    "Type",
+    "Subsea production system for Phase 1B"
+  ],
+  "status_values": [
+    6,
+    3,
+    3,
+    3,
+    3,
+    2,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1
+  ]
+};
+        
+        function generateTable() {
+            const table = document.getElementById('projectTable');
+            const headerRow = document.getElementById('tableHeader');
+            const tbody = document.getElementById('tableBody');
+            
+            if (tableData.length === 0) return;
+            
+            const allKeys = new Set();
+            tableData.forEach(row => {
+                Object.keys(row).forEach(key => allKeys.add(key));
+            });
+            
+            const headers = Array.from(allKeys);
+            headers.forEach(header => {
+                const th = document.createElement('th');
+                th.textContent = header.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                headerRow.appendChild(th);
+            });
+            
+            tableData.forEach(row => {
+                const tr = document.createElement('tr');
+                headers.forEach(header => {
+                    const td = document.createElement('td');
+                    td.textContent = row[header] || '';
+                    tr.appendChild(td);
+                });
+                tbody.appendChild(tr);
+            });
+        }
+        
+        function searchTable() {
+            const searchTerm = document.getElementById('searchBox').value.toLowerCase();
+            const rows = document.querySelectorAll('#tableBody tr');
+            
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(searchTerm) ? '' : 'none';
+            });
+        }
+        
+        function createCharts() {
+            if (chartData.status_labels.length > 0) {
+                const statusCtx = document.getElementById('statusChart').getContext('2d');
+                new Chart(statusCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: chartData.status_labels,
+                        datasets: [{
+                            data: chartData.status_values,
+                            backgroundColor: [
+                                '#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6'
+                            ]
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false
+                    }
+                });
+            }
+            
+            const progressCtx = document.getElementById('progressChart').getContext('2d');
+            new Chart(progressCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['0-25%', '26-50%', '51-75%', '76-100%'],
+                    datasets: [{
+                        label: 'Projects',
+                        data: [5, 8, 12, 10],
+                        backgroundColor: '#667eea'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+        }
+        
+        window.onload = function() {
+            generateTable();
+            createCharts();
+        };
+    </script>
+</body>
+</html>
+        

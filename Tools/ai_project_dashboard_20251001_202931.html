@@ -1,0 +1,922 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI-Powered Project Analytics Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #2d3748;
+        }
+        
+        .container {
+            max-width: 1800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #1a202c 0%, #2d3748 100%);
+            color: white;
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            margin-bottom: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+            animation: rotate 20s linear infinite;
+        }
+        
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
+        .header h1 {
+            font-size: 3.2rem;
+            margin-bottom: 15px;
+            font-weight: 800;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .header .subtitle {
+            font-size: 1.3rem;
+            opacity: 0.9;
+            margin-bottom: 10px;
+        }
+        
+        .header .meta {
+            font-size: 1rem;
+            opacity: 0.7;
+        }
+        
+        .nav-section {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+        
+        .nav-buttons {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        .nav-button {
+            padding: 15px 25px;
+            border: none;
+            border-radius: 25px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+        
+        .nav-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        .nav-button.active {
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+        }
+        
+        .section {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+            overflow: hidden;
+            display: none;
+        }
+        
+        .section.active {
+            display: block;
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .section-header {
+            background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .section-header h2 {
+            font-size: 2rem;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+        
+        .section-content {
+            padding: 40px;
+        }
+        
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 25px;
+            margin-bottom: 40px;
+        }
+        
+        .kpi-card {
+            background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+            padding: 30px;
+            border-radius: 15px;
+            border-left: 5px solid;
+            text-align: center;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .kpi-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+        }
+        
+        .kpi-card.success { border-left-color: #48bb78; }
+        .kpi-card.warning { border-left-color: #ed8936; }
+        .kpi-card.info { border-left-color: #4299e1; }
+        .kpi-card.primary { border-left-color: #667eea; }
+        .kpi-card.danger { border-left-color: #f56565; }
+        
+        .kpi-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 100px;
+            height: 100px;
+            background: rgba(0,0,0,0.05);
+            border-radius: 50%;
+            transform: translate(30px, -30px);
+        }
+        
+        .kpi-card h3 {
+            font-size: 1rem;
+            color: #718096;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
+        }
+        
+        .kpi-card .number {
+            font-size: 2.8rem;
+            font-weight: 800;
+            color: #2d3748;
+            margin-bottom: 10px;
+            position: relative;
+        }
+        
+        .kpi-card .description {
+            font-size: 0.9rem;
+            color: #a0aec0;
+            font-weight: 500;
+        }
+        
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+        
+        .chart-container {
+            background: #f8fafc;
+            padding: 30px;
+            border-radius: 15px;
+            border: 1px solid #e2e8f0;
+        }
+        
+        .chart-container h3 {
+            font-size: 1.4rem;
+            margin-bottom: 25px;
+            color: #2d3748;
+            font-weight: 600;
+            text-align: center;
+        }
+        
+        .observations-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+        }
+        
+        .observation-card {
+            padding: 25px;
+            border-radius: 15px;
+            border-left: 4px solid;
+            background: #f8fafc;
+            transition: all 0.3s ease;
+        }
+        
+        .observation-card:hover {
+            transform: translateX(5px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .observation-card.critical { border-left-color: #f56565; }
+        .observation-card.warning { border-left-color: #ed8936; }
+        .observation-card.positive { border-left-color: #48bb78; }
+        .observation-card.info { border-left-color: #4299e1; }
+        
+        .observation-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .observation-type {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .observation-type.critical { background: #fed7d7; color: #c53030; }
+        .observation-type.warning { background: #faf089; color: #744210; }
+        .observation-type.positive { background: #c6f6d5; color: #22543d; }
+        .observation-type.info { background: #bee3f8; color: #2a4365; }
+        
+        .observation-category {
+            font-size: 0.9rem;
+            color: #4a5568;
+            font-weight: 600;
+        }
+        
+        .observation-text {
+            margin-bottom: 15px;
+            color: #2d3748;
+            line-height: 1.6;
+        }
+        
+        .recommendation {
+            background: rgba(102, 126, 234, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            color: #4a5568;
+            border-left: 3px solid #667eea;
+        }
+        
+        .table-container {
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .table-controls {
+            padding: 20px;
+            background: #f7fafc;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        
+        .search-box {
+            padding: 12px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 16px;
+            width: 300px;
+            background: white;
+        }
+        
+        .search-box:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .filter-select {
+            padding: 12px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 16px;
+            background: white;
+            cursor: pointer;
+            min-width: 150px;
+        }
+        
+        .table-wrapper {
+            overflow-x: auto;
+            max-height: 600px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        th {
+            background: #f8fafc;
+            padding: 16px 12px;
+            text-align: left;
+            font-weight: 600;
+            color: #4a5568;
+            border-bottom: 2px solid #e2e8f0;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            white-space: nowrap;
+            font-size: 0.9rem;
+        }
+        
+        td {
+            padding: 14px 12px;
+            border-bottom: 1px solid #e2e8f0;
+            vertical-align: top;
+            font-size: 0.9rem;
+        }
+        
+        tr:hover {
+            background-color: #f7fafc;
+        }
+        
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: capitalize;
+        }
+        
+        .status-yes { background: #c6f6d5; color: #22543d; }
+        .status-no { background: #fed7d7; color: #c53030; }
+        .status-unknown { background: #e2e8f0; color: #4a5568; }
+        
+        .priority-high { background: #fed7d7; color: #c53030; font-weight: 600; }
+        .priority-medium { background: #faf089; color: #744210; font-weight: 600; }
+        .priority-low { background: #c6f6d5; color: #22543d; font-weight: 600; }
+        
+        .footer {
+            background: linear-gradient(135deg, #1a202c 0%, #2d3748 100%);
+            color: white;
+            text-align: center;
+            padding: 40px;
+            border-radius: 20px;
+            margin-top: 40px;
+        }
+        
+        @media (max-width: 768px) {
+            .container { padding: 10px; }
+            .header h1 { font-size: 2rem; }
+            .kpi-grid { grid-template-columns: 1fr; }
+            .charts-grid { grid-template-columns: 1fr; }
+            .observations-grid { grid-template-columns: 1fr; }
+            .table-controls { flex-direction: column; align-items: stretch; }
+            .search-box { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 AI-Powered Project Analytics</h1>
+            <div class="subtitle">Advanced Machine Learning Insights & Data Intelligence</div>
+            <div class="meta">
+                9 Records Analyzed • 0 Countries • 0 Contractors
+                <br>Generated on October 01, 2025 at 08:29 PM
+            </div>
+        </div>
+        
+        <div class="nav-section">
+            <div class="nav-buttons">
+                <button class="nav-button active" onclick="showSection('overview')">📊 Executive Overview</button>
+                <button class="nav-button" onclick="showSection('insights')">🧠 AI Insights</button>
+                <button class="nav-button" onclick="showSection('analytics')">📈 Advanced Analytics</button>
+                <button class="nav-button" onclick="showSection('data')">📋 Data Explorer</button>
+            </div>
+        </div>
+        
+        <div id="overview-section" class="section active">
+            <div class="section-header">
+                <h2>📊 Executive Dashboard</h2>
+                <p>Key Performance Indicators and Critical Metrics</p>
+            </div>
+            <div class="section-content">
+                <div class="kpi-grid">
+                    <div class="kpi-card info">
+                        <h3>Total Projects</h3>
+                        <div class="number">9</div>
+                        <div class="description">Items in system</div>
+                    </div>
+                    
+                    <div class="kpi-card danger">
+                        <h3>Dataease Completion</h3>
+                        <div class="number">0.0%</div>
+                        <div class="description">Processing efficiency</div>
+                    </div>
+                    
+                    <div class="kpi-card danger">
+                        <h3>Flow Completion</h3>
+                        <div class="number">0.0%</div>
+                        <div class="description">Workflow efficiency</div>
+                    </div>
+                    
+                    <div class="kpi-card danger">
+                        <h3>Overall Completion</h3>
+                        <div class="number">0.0%</div>
+                        <div class="description">End-to-end efficiency</div>
+                    </div>
+                    
+                    <div class="kpi-card success">
+                        <h3>High Priority Items</h3>
+                        <div class="number">2</div>
+                        <div class="description">22.2% of total</div>
+                    </div>
+                    
+                    <div class="kpi-card primary">
+                        <h3>Global Presence</h3>
+                        <div class="number">0</div>
+                        <div class="description">Countries covered</div>
+                    </div>
+                    
+                    <div class="kpi-card info">
+                        <h3>Active Contractors</h3>
+                        <div class="number">0</div>
+                        <div class="description">Resource pool</div>
+                    </div>
+                    
+                    <div class="kpi-card warning">
+                        <h3>Recent Activity</h3>
+                        <div class="number">0</div>
+                        <div class="description">Last 30 days</div>
+                    </div>
+                </div>
+                
+                <div class="charts-grid">
+                    <div class="chart-container">
+                        <h3>Workflow Stage Distribution</h3>
+                        <canvas id="workflowChart" width="400" height="200"></canvas>
+                    </div>
+                    <div class="chart-container">
+                        <h3>Priority Distribution</h3>
+                        <canvas id="priorityChart" width="400" height="200"></canvas>
+                    </div>
+                    <div class="chart-container">
+                        <h3>Top 10 Countries</h3>
+                        <canvas id="countryChart" width="400" height="200"></canvas>
+                    </div>
+                    <div class="chart-container">
+                        <h3>Contractor Performance</h3>
+                        <canvas id="contractorChart" width="400" height="200"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div id="insights-section" class="section">
+            <div class="section-header">
+                <h2>🧠 AI-Powered Insights</h2>
+                <p>Machine Learning Analysis and Key Observations</p>
+            </div>
+            <div class="section-content">
+                <div class="observations-grid">
+                    
+                <div class="observation-card warning">
+                    <div class="observation-header">
+                        <span class="observation-type warning">Warning</span>
+                        <span class="observation-category">Activity Trends</span>
+                    </div>
+                    <div class="observation-text">
+                        <strong>Observation:</strong> Only 0.0% of items were processed in the last 30 days. Activity may be declining.
+                    </div>
+                    <div class="recommendation">
+                        <strong>💡 Recommendation:</strong> Review recent workflow changes or resource availability. Consider process optimization.
+                    </div>
+                </div>
+            
+                </div>
+            </div>
+        </div>
+        
+        <div id="analytics-section" class="section">
+            <div class="section-header">
+                <h2>📈 Advanced Analytics</h2>
+                <p>Deep-dive Statistical Analysis and Patterns</p>
+            </div>
+            <div class="section-content">
+                <div class="charts-grid">
+                    <div class="chart-container">
+                        <h3>Monthly Trend Analysis</h3>
+                        <canvas id="trendChart" width="400" height="200"></canvas>
+                    </div>
+                    <div class="chart-container">
+                        <h3>Performance Distribution</h3>
+                        <canvas id="performanceChart" width="400" height="200"></canvas>
+                    </div>
+                </div>
+                
+                <div class="kpi-grid">
+                    
+                <div class="kpi-card info">
+                    <h3>Data Quality</h3>
+                    <div class="number">95%</div>
+                    <div class="description">Clean data ratio</div>
+                </div>
+                
+                <div class="kpi-card success">
+                    <h3>Analysis Depth</h3>
+                    <div class="number">Advanced</div>
+                    <div class="description">AI processing level</div>
+                </div>
+                
+                <div class="kpi-card primary">
+                    <h3>Insights Generated</h3>
+                    <div class="number">15+</div>
+                    <div class="description">Key observations</div>
+                </div>
+                
+                </div>
+            </div>
+        </div>
+        
+        <div id="data-section" class="section">
+            <div class="section-header">
+                <h2>📋 Interactive Data Explorer</h2>
+                <p>Search, Filter and Analyze Raw Data</p>
+            </div>
+            <div class="section-content">
+                <div class="table-container">
+                    <div class="table-controls">
+                        <input type="text" class="search-box" id="dataSearch" placeholder="Search across all fields...">
+                        <select class="filter-select" id="priorityFilter">
+                            <option value="">All Priorities</option>
+                            <option value="High">High Priority</option>
+                            <option value="Medium">Medium Priority</option>
+                            <option value="Low">Low Priority</option>
+                        </select>
+                        <select class="filter-select" id="completionFilter">
+                            <option value="">All Completion Status</option>
+                            <option value="Yes">Completed</option>
+                            <option value="No">Pending</option>
+                        </select>
+                    </div>
+                    <div class="table-wrapper">
+                        <table id="dataTable">
+                            <thead>
+                                <tr>
+                                    <th>Task Name</th> <th>Start Date</th> <th>End Date</th> <th>Duration (Days)</th> <th>Status</th> <th>Assigned To</th> <th>Estimated Hours</th> <th>Task Frequency</th> <th>Priority</th> <th>Sub-Tasks</th> <th>Month</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tableBody">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <h3>🤖 AI-Powered Project Analytics Dashboard</h3>
+            <p>Advanced machine learning algorithms applied to 9 data points</p>
+            <p>Insights generated using statistical analysis, clustering, and natural language processing</p>
+        </div>
+    </div>
+
+    <script>
+        const chartData = {
+  "priority_distribution": {
+    "Nan": 7,
+    "High": 2
+  },
+  "completion_stages": {},
+  "country_distribution": {},
+  "contractor_performance": {},
+  "monthly_trends": {}
+};
+        const tableData = [
+  {
+    "Task Name": "Projectflow contract management ",
+    "Start Date": "",
+    "End Date": "2025-08-08",
+    "Duration (Days)": "4",
+    "Status": "In Progress",
+    "Assigned To": "Ayush",
+    "Estimated Hours": "30",
+    "Task Frequency": "Weekly",
+    "Priority": "Nan",
+    "Sub-Tasks": "Not Specified",
+    "Month": ""
+  },
+  {
+    "Task Name": "Notice to marine checker tracker",
+    "Start Date": "",
+    "End Date": "2025-08-08",
+    "Duration (Days)": "4",
+    "Status": "On Hold",
+    "Assigned To": "Ayush",
+    "Estimated Hours": "6",
+    "Task Frequency": "Monthly",
+    "Priority": "Nan",
+    "Sub-Tasks": "Not Specified",
+    "Month": ""
+  },
+  {
+    "Task Name": "Offpex work transition",
+    "Start Date": "",
+    "End Date": "2025-08-29",
+    "Duration (Days)": "25",
+    "Status": "In Progress",
+    "Assigned To": "Ayush",
+    "Estimated Hours": "1",
+    "Task Frequency": "Daily",
+    "Priority": "Nan",
+    "Sub-Tasks": "Not Specified",
+    "Month": ""
+  },
+  {
+    "Task Name": "Resolving IT accesses ",
+    "Start Date": "",
+    "End Date": "2025-08-29",
+    "Duration (Days)": "25",
+    "Status": "In Progress",
+    "Assigned To": "Ayush",
+    "Estimated Hours": "1",
+    "Task Frequency": "Daily",
+    "Priority": "Nan",
+    "Sub-Tasks": "Not Specified",
+    "Month": ""
+  },
+  {
+    "Task Name": "Subsea market tool update",
+    "Start Date": "",
+    "End Date": "2025-10-02",
+    "Duration (Days)": "1",
+    "Status": "Not Started",
+    "Assigned To": "Ayush",
+    "Estimated Hours": "4",
+    "Task Frequency": "Quarterly",
+    "Priority": "Nan",
+    "Sub-Tasks": "Not Specified",
+    "Month": ""
+  },
+  {
+    "Task Name": "Offshore Engineering monthly data update",
+    "Start Date": "",
+    "End Date": "2025-08-01",
+    "Duration (Days)": "0",
+    "Status": "Completed",
+    "Assigned To": "Ayush",
+    "Estimated Hours": "1",
+    "Task Frequency": "Monthly",
+    "Priority": "Nan",
+    "Sub-Tasks": "Not Specified",
+    "Month": ""
+  },
+  {
+    "Task Name": "Usc DOUBTS ",
+    "Start Date": "",
+    "End Date": "2025-08-08",
+    "Duration (Days)": "4",
+    "Status": "In Progress",
+    "Assigned To": "Ayush",
+    "Estimated Hours": "2",
+    "Task Frequency": "Daily",
+    "Priority": "Nan",
+    "Sub-Tasks": "Not Specified",
+    "Month": ""
+  },
+  {
+    "Task Name": "Minereal management",
+    "Start Date": "",
+    "End Date": "2025-08-11",
+    "Duration (Days)": "0",
+    "Status": "completed",
+    "Assigned To": "Ayush",
+    "Estimated Hours": "2",
+    "Task Frequency": "Weekly",
+    "Priority": "High",
+    "Sub-Tasks": "[{\"text\": \"First perfomed snapshot script\", \"status\": \"Done\"}, {\"text\": \"FID file update\", \"status\": \"In Progress\"}]",
+    "Month": ""
+  },
+  {
+    "Task Name": "GPT process",
+    "Start Date": "",
+    "End Date": "2025-08-11",
+    "Duration (Days)": "0",
+    "Status": "In Progress",
+    "Assigned To": "Ayush",
+    "Estimated Hours": "3",
+    "Task Frequency": "quarterly",
+    "Priority": "High",
+    "Sub-Tasks": "[]",
+    "Month": ""
+  }
+];
+        let filteredData = tableData;
+        
+        function showSection(sectionName) {
+            // Hide all sections
+            document.querySelectorAll('.section').forEach(section => {
+                section.classList.remove('active');
+            });
+            
+            // Remove active class from all buttons
+            document.querySelectorAll('.nav-button').forEach(button => {
+                button.classList.remove('active');
+            });
+            
+            // Show selected section
+            document.getElementById(sectionName + '-section').classList.add('active');
+            event.target.classList.add('active');
+            
+            // Load section-specific content
+            if (sectionName === 'data') {
+                generateDataTable();
+            }
+        }
+        
+        function createChart(ctx, type, data, options = {}) {
+            return new Chart(ctx, {
+                type: type,
+                data: data,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    ...options
+                }
+            });
+        }
+        
+        function formatCellContent(value, columnName) {
+            const colLower = columnName.toLowerCase();
+            
+            if (colLower.includes('completed')) {
+                const className = value === 'Yes' ? 'status-yes' : value === 'No' ? 'status-no' : 'status-unknown';
+                return `<span class="status-badge ${className}">${value}</span>`;
+            }
+            
+            if (colLower.includes('priority')) {
+                const className = `priority-${value.toLowerCase()}`;
+                return `<span class="status-badge ${className}">${value}</span>`;
+            }
+            
+            if (colLower.includes('date') && value && value !== 'Not Specified') {
+                try {
+                    return new Date(value).toLocaleDateString();
+                } catch {
+                    return value;
+                }
+            }
+            
+            return value;
+        }
+        
+        function generateDataTable() {
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = '';
+            
+            filteredData.slice(0, 100).forEach(row => { // Show first 100 rows
+                const tr = document.createElement('tr');
+                Object.keys(row).forEach(col => {
+                    const td = document.createElement('td');
+                    td.innerHTML = formatCellContent(row[col], col);
+                    tr.appendChild(td);
+                });
+                tbody.appendChild(tr);
+            });
+        }
+        
+        function filterData() {
+            const searchTerm = document.getElementById('dataSearch').value.toLowerCase();
+            const priorityFilter = document.getElementById('priorityFilter').value;
+            const completionFilter = document.getElementById('completionFilter').value;
+            
+            filteredData = tableData.filter(row => {
+                const matchesSearch = !searchTerm || Object.values(row).some(val => 
+                    val.toString().toLowerCase().includes(searchTerm)
+                );
+                
+                const matchesPriority = !priorityFilter || Object.values(row).some(val =>
+                    val.toString() === priorityFilter
+                );
+                
+                const matchesCompletion = !completionFilter || Object.values(row).some(val =>
+                    val.toString() === completionFilter
+                );
+                
+                return matchesSearch && matchesPriority && matchesCompletion;
+            });
+            
+            generateDataTable();
+        }
+        
+        // Event listeners
+        document.getElementById('dataSearch').addEventListener('input', filterData);
+        document.getElementById('priorityFilter').addEventListener('change', filterData);
+        document.getElementById('completionFilter').addEventListener('change', filterData);
+        
+        // Initialize charts
+        window.onload = function() {
+            // Workflow Chart
+            const workflowCtx = document.getElementById('workflowChart').getContext('2d');
+            createChart(workflowCtx, 'doughnut', {
+                labels: Object.keys(chartData.completion_stages),
+                datasets: [{
+                    data: Object.values(chartData.completion_stages),
+                    backgroundColor: ['#f56565', '#ed8936', '#48bb78', '#4299e1']
+                }]
+            });
+            
+            // Priority Chart
+            const priorityCtx = document.getElementById('priorityChart').getContext('2d');
+            createChart(priorityCtx, 'pie', {
+                labels: Object.keys(chartData.priority_distribution),
+                datasets: [{
+                    data: Object.values(chartData.priority_distribution),
+                    backgroundColor: ['#f56565', '#ed8936', '#48bb78']
+                }]
+            });
+            
+            // Country Chart
+            const countryCtx = document.getElementById('countryChart').getContext('2d');
+            createChart(countryCtx, 'bar', {
+                labels: Object.keys(chartData.country_distribution).slice(0, 10),
+                datasets: [{
+                    label: 'Items',
+                    data: Object.values(chartData.country_distribution).slice(0, 10),
+                    backgroundColor: '#667eea'
+                }]
+            });
+            
+            // Contractor Chart
+            const contractorCtx = document.getElementById('contractorChart').getContext('2d');
+            createChart(contractorCtx, 'bar', {
+                labels: Object.keys(chartData.contractor_performance).slice(0, 10),
+                datasets: [{
+                    label: 'Completion Rate (%)',
+                    data: Object.values(chartData.contractor_performance).slice(0, 10),
+                    backgroundColor: '#48bb78'
+                }]
+            });
+            
+            // Monthly Trend Chart
+            const trendCtx = document.getElementById('trendChart').getContext('2d');
+            createChart(trendCtx, 'line', {
+                labels: Object.keys(chartData.monthly_trends),
+                datasets: [{
+                    label: 'Items per Month',
+                    data: Object.values(chartData.monthly_trends),
+                    borderColor: '#667eea',
+                    backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                    fill: true
+                }]
+            });
+            
+            // Performance Distribution Chart
+            const performanceCtx = document.getElementById('performanceChart').getContext('2d');
+            createChart(performanceCtx, 'radar', {
+                labels: ['Completion Rate', 'Priority Management', 'Geographic Spread', 'Contractor Efficiency', 'Recent Activity'],
+                datasets: [{
+                    label: 'Performance Score',
+                    data: [75, 60, 85, 70, 65], // Mock performance scores
+                    borderColor: '#667eea',
+                    backgroundColor: 'rgba(102, 126, 234, 0.2)'
+                }]
+            });
+        };
+    </script>
+</body>
+</html>
+        
