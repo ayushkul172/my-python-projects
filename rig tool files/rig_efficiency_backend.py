@@ -1,158 +1,3 @@
-import pandas as pd
-import numpy as np
-from datetime import datetime
-
-
-def preprocess_dataframe(df: pd.DataFrame) -> pd.DataFrame:
-    """Basic preprocessing to normalize common column names and types.
-    This is a lightweight stub to allow the Streamlit UI to load for testing.
-    """
-    df = df.copy()
-
-    # Common renames
-    renames = {
-        'Drilling Unit Name': 'Rig Name',
-        'Drilling Unit': 'Rig Name',
-        'Rig': 'Rig Name',
-        'Start Date': 'Contract Start Date',
-        'End Date': 'Contract End Date',
-    }
-    df.rename(columns=renames, inplace=True)
-
-    # Parse dates
-    for col in ['Contract Start Date', 'Contract End Date']:
-        if col in df.columns:
-            df[col] = pd.to_datetime(df[col], errors='coerce')
-
-    # Ensure numeric columns
-    for col in ['Dayrate ($k)', 'Contract value ($m)', 'Contract Length']:
-        if col in df.columns:
-            df[col] = pd.to_numeric(df[col], errors='coerce')
-
-    # Fill Rig Name if missing
-    if 'Rig Name' not in df.columns:
-        df['Rig Name'] = 'Unknown Rig'
-
-    return df
-
-
-class AdvancedClimateIntelligence:
-    """Stub for climate intelligence helper."""
-    def analyze_location(self, location_str):
-        # Very simple placeholder scoring: random-ish but deterministic
-        if not location_str:
-            return 50.0
-        return float((sum(ord(c) for c in str(location_str)) % 50) + 50)
-
-
-class RigEfficiencyCalculator:
-    """Lightweight stub for rig efficiency calculations used by the app.
-    These heuristics are simple and intended only to let the UI function while
-    you plug in your real calculation logic.
-    """
-    def __init__(self):
-        self.name = 'stub_calculator'
-
-    def calculate_comprehensive_efficiency(self, df: pd.DataFrame):
-        if df is None or df.empty:
-            return None
-
-        # Basic metrics derived from available columns
-        metrics = {}
-
-        # Utilization: percent of contracts with Status containing 'active'
-        if 'Status' in df.columns:
-            active = df['Status'].fillna('').str.contains('active', case=False, na=False).sum()
-            total = len(df)
-            metrics['contract_utilization'] = float(active / total * 100)
-        else:
-            metrics['contract_utilization'] = 70.0
-
-        # Dayrate efficiency: normalize mean dayrate to a 0-100 scale using a soft cap
-        if 'Dayrate ($k)' in df.columns and not df['Dayrate ($k)'].dropna().empty:
-            mean_dayrate = df['Dayrate ($k)'].mean()
-            # Assume 300k is excellent, 50k is poor
-            metrics['dayrate_efficiency'] = float(np.clip((mean_dayrate - 50) / (300 - 50) * 100, 0, 100))
-        else:
-            metrics['dayrate_efficiency'] = 65.0
-
-        # Contract stability: inverse of std dev of contract length if available
-        if 'Contract Length' in df.columns and not df['Contract Length'].dropna().empty:
-            std = df['Contract Length'].std()
-            metrics['contract_stability'] = float(np.clip(100 - std, 20, 100))
-        else:
-            metrics['contract_stability'] = 70.0
-
-        # Location complexity: simple function based on unique locations
-        if 'Current Location' in df.columns:
-            locations = df['Current Location'].nunique()
-            metrics['location_complexity'] = float(np.clip(100 - (locations - 1) * 10, 20, 100))
-        else:
-            metrics['location_complexity'] = 80.0
-
-        # Climate impact: use simple analyzer if available
-        if 'Current Location' in df.columns:
-            locs = df['Current Location'].dropna().astype(str)
-            if not locs.empty:
-                vals = [AdvancedClimateIntelligence().analyze_location(s) for s in locs]
-                metrics['climate_impact'] = float(np.mean(vals))
-            else:
-                metrics['climate_impact'] = 70.0
-        else:
-            metrics['climate_impact'] = 70.0
-
-        # Contract performance: proxy by dayrate * utilization / 100
-        metrics['contract_performance'] = float(np.clip((metrics['dayrate_efficiency'] * metrics['contract_utilization']) / 100, 0, 100))
-
-        # Overall efficiency: weighted average
-        weights = {
-            'contract_utilization': 0.25,
-            'dayrate_efficiency': 0.20,
-            'contract_stability': 0.15,
-            'location_complexity': 0.15,
-            'climate_impact': 0.10,
-            'contract_performance': 0.15
-        }
-        overall = 0.0
-        for k, w in weights.items():
-            overall += metrics.get(k, 70.0) * w
-
-        metrics['overall_efficiency'] = float(np.clip(overall, 0, 100))
-
-        # Grade
-        if metrics['overall_efficiency'] >= 85:
-            metrics['efficiency_grade'] = 'A'
-        elif metrics['overall_efficiency'] >= 75:
-            metrics['efficiency_grade'] = 'B'
-        elif metrics['overall_efficiency'] >= 60:
-            metrics['efficiency_grade'] = 'C'
-        else:
-            metrics['efficiency_grade'] = 'D'
-
-        metrics['insights'] = []
-
-        return metrics
-
-    def generate_contract_summary(self, df: pd.DataFrame, metrics: dict):
-        if df is None:
-            return None
-
-        rig_name = df['Rig Name'].iloc[0] if 'Rig Name' in df.columns and not df['Rig Name'].empty else 'Unknown'
-        total_contracts = len(df)
-        active_contracts = df['Status'].fillna('').str.contains('active', case=False, na=False).sum() if 'Status' in df.columns else 0
-        total_value = float(df['Contract value ($m)'].sum()) if 'Contract value ($m)' in df.columns else 0.0
-        avg_dayrate = float(df['Dayrate ($k)'].mean()) if 'Dayrate ($k)' in df.columns else 0.0
-
-        return {
-            'rig_name': rig_name,
-            'total_contracts': int(total_contracts),
-            'active_contracts': int(active_contracts),
-            'efficiency_grade': metrics.get('efficiency_grade', 'N/A') if metrics else 'N/A',
-            'total_contract_value': total_value,
-            'average_dayrate': avg_dayrate,
-            'top_strength': 'Balanced Performance',
-            'primary_concern': 'Data Quality' if df.isnull().any().any() else 'None'
-        }
 """
 Rig Efficiency Analysis Backend - COMPLETE VERSION
 Core calculation and AI logic with all components
@@ -161,6 +6,7 @@ Core calculation and AI logic with all components
 import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
+from sklearn.preprocessing import MinMaxScaler
 import warnings
 
 warnings.filterwarnings('ignore')
@@ -291,7 +137,7 @@ class AdvancedClimateIntelligence:
                 'climate': 'harsh_winter',
                 'risk_months': [11, 12, 1, 2, 3],
                 'peak_risk_months': [12, 1],
-                'efficiency_factor': 0.70,
+                'efficiency_factor': 0.70,  
                 'downtime_risk': 0.30,
                 'seasonal_multipliers': {
                     1: 0.55, 2: 0.60, 3: 0.70, 4: 0.80, 5: 0.90,
@@ -917,6 +763,811 @@ class AdvancedClimateIntelligence:
 
 
 
+class RegionalBenchmarkModel:
+    """
+    Expected Performance Models for each region + geology type
+    Provides normalized benchmarks for fair comparison
+    """
+    def __init__(self):
+        self.benchmarks = self._initialize_benchmarks()
+    
+    def _initialize_benchmarks(self):
+        """Initialize regional and geological benchmarks"""
+        return {
+            'offshore': {'expected_rop': 35, 'expected_npt': 15, 'expected_days_per_well': 45, 'cost_per_meter': 800, 'dayrate_benchmark': 300},
+            'onshore': {'expected_rop': 55, 'expected_npt': 8, 'expected_days_per_well': 25, 'cost_per_meter': 350, 'dayrate_benchmark': 150},
+            'hpht': {'expected_rop': 20, 'expected_npt': 25, 'expected_days_per_well': 65, 'cost_per_meter': 1200, 'difficulty_multiplier': 1.8},
+            'hard_formation': {'expected_rop': 25, 'expected_npt': 18, 'expected_days_per_well': 55, 'cost_per_meter': 950, 'difficulty_multiplier': 1.5},
+            'soft_formation': {'expected_rop': 65, 'expected_npt': 7, 'expected_days_per_well': 20, 'cost_per_meter': 400, 'difficulty_multiplier': 0.8},
+            'arctic': {'expected_rop': 30, 'expected_npt': 22, 'expected_days_per_well': 60, 'cost_per_meter': 1100, 'difficulty_multiplier': 1.7},
+            'desert': {'expected_rop': 50, 'expected_npt': 9, 'expected_days_per_well': 28, 'cost_per_meter': 500, 'difficulty_multiplier': 0.9},
+            'tropical': {'expected_rop': 40, 'expected_npt': 14, 'expected_days_per_well': 40, 'cost_per_meter': 700, 'difficulty_multiplier': 1.2},
+            'deepwater': {'expected_rop': 30, 'expected_npt': 18, 'expected_days_per_well': 55, 'cost_per_meter': 1000, 'difficulty_multiplier': 1.6},
+            'ultra_deepwater': {'expected_rop': 25, 'expected_npt': 22, 'expected_days_per_well': 70, 'cost_per_meter': 1400, 'difficulty_multiplier': 2.0},
+            'shallow_water': {'expected_rop': 45, 'expected_npt': 10, 'expected_days_per_well': 30, 'cost_per_meter': 600, 'difficulty_multiplier': 1.0}
+        }
+    
+    def get_benchmark(self, rig_data):
+        """Get appropriate benchmark for rig"""
+        location = str(rig_data['Current Location'].iloc[0]).lower() if 'Current Location' in rig_data.columns and len(rig_data) > 0 else ''
+        categories = []
+        
+        if any(term in location for term in ['offshore', 'sea', 'platform']):
+            categories.append('offshore')
+        elif any(term in location for term in ['onshore', 'land']):
+            categories.append('onshore')
+        
+        if any(term in location for term in ['deepwater', 'deep water']):
+            categories.append('ultra_deepwater' if 'ultra' in location else 'deepwater')
+        
+        if any(term in location for term in ['arctic', 'north sea', 'norway']):
+            categories.append('arctic')
+        elif any(term in location for term in ['middle east', 'saudi', 'uae', 'qatar']):
+            categories.append('desert')
+        elif any(term in location for term in ['gulf of mexico', 'brazil', 'indonesia']):
+            categories.append('tropical')
+        
+        if not categories:
+            categories = ['offshore']
+        
+        combined_benchmark = {k: 0 for k in ['expected_rop', 'expected_npt', 'expected_days_per_well', 'cost_per_meter', 'difficulty_multiplier']}
+        combined_benchmark['difficulty_multiplier'] = 1.0
+        
+        for cat in categories:
+            if cat in self.benchmarks:
+                bench = self.benchmarks[cat]
+                for key in combined_benchmark:
+                    if key == 'difficulty_multiplier':
+                        combined_benchmark[key] *= bench.get(key, 1.0)
+                    else:
+                        combined_benchmark[key] += bench.get(key, 0)
+        
+        count = len(categories)
+        for key in combined_benchmark:
+            if key != 'difficulty_multiplier' and count > 0:
+                combined_benchmark[key] /= count
+        
+        combined_benchmark['categories'] = categories
+        return combined_benchmark
+    
+    def calculate_normalized_performance(self, rig_data, actual_metrics=None):
+        """
+        Calculate performance normalized against benchmark
+        
+        Parameters:
+        - rig_data: DataFrame with contract data
+        - actual_metrics: dict with drilling metrics (optional)
+                         If None, will generate estimates from available contract data
+        
+        If actual_metrics not provided, generates reasonable estimates using:
+        - Dayrate → Equipment quality → ROP and NPT estimates
+        - Contract length → Days per well estimate
+        - Industry correlations for cost per meter
+        """
+        benchmark = self.get_benchmark(rig_data)
+        
+        # === Generate actual_metrics if not provided ===
+        if actual_metrics is None or not isinstance(actual_metrics, dict):
+            # Extract available contract-level data
+            dayrate = rig_data['Dayrate ($k)'].mean() if 'Dayrate ($k)' in rig_data.columns else 200
+            contract_length = rig_data['Contract Length'].mean() if 'Contract Length' in rig_data.columns else 180
+            
+            # Generate synthetic drilling metrics using industry correlations
+            
+            # 1. ROP (Rate of Penetration)
+            # Higher dayrate = better equipment = faster drilling
+            # Base: 35 m/hr (industry average)
+            # Multiplier range: 0.7x to 1.5x (70% to 150% of base)
+            base_rop = 35
+            rop_multiplier = min(1.5, max(0.7, dayrate / 200))
+            estimated_rop = base_rop * rop_multiplier
+            
+            # 2. NPT (Non-Productive Time)
+            # Higher dayrate = better equipment = less downtime (inverse relationship)
+            # Base: 15% (industry average)
+            # Multiplier range: 0.7x to 1.5x
+            base_npt = 15
+            npt_multiplier = min(1.5, max(0.7, 200 / dayrate))  # Inverse
+            estimated_npt = base_npt * npt_multiplier
+            
+            # 3. Days Per Well
+            # Estimate from contract length
+            # Assumption: 3-4 wells per contract on average
+            estimated_days_per_well = contract_length / 3.5
+            
+            # 4. Cost Per Meter
+            # Direct correlation with dayrate
+            # Industry rule of thumb: cost_per_meter ≈ dayrate × 5
+            estimated_cost_per_meter = dayrate * 5
+            
+            # Build synthetic metrics dict
+            actual_metrics = {
+                'rop': estimated_rop,
+                'npt': estimated_npt,
+                'days_per_well': estimated_days_per_well,
+                'cost_per_meter': estimated_cost_per_meter
+            }
+        
+        # === Existing calculation logic (unchanged) ===
+        normalized = {}
+        
+        if 'rop' in actual_metrics:
+            normalized['rop_performance'] = (actual_metrics['rop'] / benchmark['expected_rop'] * 100) if benchmark['expected_rop'] > 0 else 100
+        if 'npt' in actual_metrics:
+            normalized['npt_performance'] = (benchmark['expected_npt'] / actual_metrics['npt'] * 100) if actual_metrics['npt'] > 0 else 100
+        if 'days_per_well' in actual_metrics:
+            normalized['time_performance'] = (benchmark['expected_days_per_well'] / actual_metrics['days_per_well'] * 100) if actual_metrics['days_per_well'] > 0 else 100
+        if 'cost_per_meter' in actual_metrics:
+            normalized['cost_performance'] = (benchmark['cost_per_meter'] / actual_metrics['cost_per_meter'] * 100) if actual_metrics['cost_per_meter'] > 0 else 100
+        
+        normalized['overall_normalized'] = np.mean([v for v in normalized.values()])
+        normalized['benchmark_used'] = benchmark['categories']
+        normalized['difficulty_multiplier'] = benchmark['difficulty_multiplier']
+        return normalized
+
+
+class RigWellMatchPredictor:
+    """ML Engine for Rig-Well Matching - Predicts execution time, AFE probability, NPT%, risk score, recommended dayrate"""
+    
+    def __init__(self):
+        self.models = {}
+        self.feature_scaler = MinMaxScaler()
+        self.is_trained = False
+        
+    def prepare_features(self, rig_data, well_params=None):
+        """Prepare feature vector for ML prediction"""
+        features = {}
+        
+        if 'Dayrate ($k)' in rig_data.columns:
+            features['avg_dayrate'] = rig_data['Dayrate ($k)'].mean()
+        else:
+            features['avg_dayrate'] = 200
+        
+        if 'Contract Length' in rig_data.columns:
+            features['avg_contract_length'] = rig_data['Contract Length'].mean()
+        else:
+            features['avg_contract_length'] = 180
+        
+        features['region_complexity'] = self._encode_region_complexity(rig_data)
+        features['climate_score'] = self._get_climate_score(rig_data)
+        
+        if 'Water Depth' in rig_data.columns:
+            features['water_depth'] = rig_data['Water Depth'].mean()
+        else:
+            features['water_depth'] = 500
+        
+        features['contract_success_rate'] = self._calculate_success_rate(rig_data)
+        features['utilization_rate'] = self._calculate_utilization(rig_data)
+        
+        if well_params:
+            features['target_depth'] = well_params.get('depth', 3000)
+            features['formation_hardness'] = well_params.get('hardness', 5)
+            features['temperature'] = well_params.get('temperature', 150)
+            features['pressure'] = well_params.get('pressure', 5000)
+        else:
+            features['target_depth'] = 3000
+            features['formation_hardness'] = 5
+            features['temperature'] = 150
+            features['pressure'] = 5000
+        
+        return features
+    
+    def _encode_region_complexity(self, rig_data):
+        """Encode region complexity as numeric value"""
+        if 'Current Location' not in rig_data.columns:
+            return 5
+        
+        location = str(rig_data['Current Location'].iloc[0]).lower() if len(rig_data) > 0 else ''
+        complexity_map = {'ultra-deep': 10, 'deepwater': 8, 'hpht': 9, 'arctic': 8, 'north sea': 7, 
+                         'gulf of mexico': 6, 'offshore': 5, 'onshore': 3, 'middle east': 2}
+        
+        for key, value in complexity_map.items():
+            if key in location:
+                return value
+        return 5
+    
+    def _get_climate_score(self, rig_data):
+        """Get simplified climate score (10=best, 1=worst)"""
+        if 'Current Location' not in rig_data.columns:
+            return 7
+        
+        location = str(rig_data['Current Location'].iloc[0]).lower() if len(rig_data) > 0 else ''
+        climate_map = {'middle east': 9, 'saudi': 9, 'uae': 9, 'qatar': 9, 'brazil': 7, 
+                      'gulf of mexico': 5, 'north sea': 3, 'arctic': 2, 'norway': 3}
+        
+        for key, value in climate_map.items():
+            if key in location:
+                return value
+        return 7
+    
+    def _calculate_success_rate(self, rig_data):
+        """Calculate historical success rate (0-10)"""
+        if 'Status' in rig_data.columns:
+            status_col = rig_data['Status'].dropna()
+            if not status_col.empty:
+                status_lower = status_col.str.lower()
+                successful = status_lower.str.contains('complete|active|operating', case=False, na=False).sum()
+                total = len(status_lower)
+                return (successful / total * 10) if total > 0 else 7
+        return 7
+    
+    def _calculate_utilization(self, rig_data):
+        """Calculate utilization score (0-10)"""
+        if 'Contract Start Date' not in rig_data.columns or 'Contract End Date' not in rig_data.columns:
+            return 7
+        
+        valid_contracts = rig_data[rig_data['Contract Start Date'].notna() & rig_data['Contract End Date'].notna()].copy()
+        if valid_contracts.empty:
+            return 7
+        
+        valid_contracts['Contract Start Date'] = pd.to_datetime(valid_contracts['Contract Start Date'], errors='coerce')
+        valid_contracts['Contract End Date'] = pd.to_datetime(valid_contracts['Contract End Date'], errors='coerce')
+        valid_contracts['contract_days'] = (valid_contracts['Contract End Date'] - valid_contracts['Contract Start Date']).dt.days
+        
+        total_contracted_days = valid_contracts['contract_days'].sum()
+        earliest_start = valid_contracts['Contract Start Date'].min()
+        latest_end = valid_contracts['Contract End Date'].max()
+        total_days = (latest_end - earliest_start).days
+        
+        if total_days <= 0:
+            return 7
+        
+        utilization = (total_contracted_days / total_days) * 10
+        return min(utilization, 10)
+    
+    def predict_well_execution(self, rig_data, well_params=None):
+        """Predict well execution outcomes using ML approach"""
+        features = self.prepare_features(rig_data, well_params)
+        predictions = {}
+        
+        base_time = features['target_depth'] / 100
+        complexity_multiplier = 1 + (features['region_complexity'] / 20)
+        climate_multiplier = 1 + ((10 - features['climate_score']) / 20)
+        formation_multiplier = 1 + (features['formation_hardness'] / 20)
+        capability_factor = features['avg_dayrate'] / 200
+        capability_multiplier = 1 / (0.8 + capability_factor * 0.4)
+        experience_multiplier = 1 / (0.8 + features['contract_success_rate'] / 25)
+        
+        expected_time = (base_time * complexity_multiplier * climate_multiplier * formation_multiplier * 
+                        capability_multiplier * experience_multiplier)
+        predictions['expected_time_days'] = round(expected_time, 1)
+        
+        base_afe_prob = 70
+        capability_bonus = (capability_factor - 1) * 20
+        experience_bonus = (features['contract_success_rate'] - 7) * 3
+        climate_bonus = (features['climate_score'] - 7) * 2
+        complexity_penalty = (features['region_complexity'] - 5) * 2
+        afe_probability = base_afe_prob + capability_bonus + experience_bonus + climate_bonus - complexity_penalty
+        predictions['afe_probability'] = max(30, min(95, afe_probability))
+        
+        base_npt = 12
+        complexity_npt = (features['region_complexity'] - 5) * 1.5
+        climate_npt = (10 - features['climate_score']) * 1.2
+        formation_npt = (features['formation_hardness'] - 5) * 0.8
+        capability_npt_reduction = (capability_factor - 1) * 3
+        experience_npt_reduction = (features['contract_success_rate'] - 7) * 0.8
+        expected_npt = base_npt + complexity_npt + climate_npt + formation_npt - capability_npt_reduction - experience_npt_reduction
+        predictions['expected_npt_percent'] = max(3, min(30, expected_npt))
+        
+        risk_components = {
+            'complexity_risk': features['region_complexity'] * 5,
+            'climate_risk': (10 - features['climate_score']) * 5,
+            'formation_risk': features['formation_hardness'] * 4,
+            'capability_risk': max(0, (5 - capability_factor) * 10),
+            'experience_risk': max(0, (7 - features['contract_success_rate']) * 5)
+        }
+        total_risk = sum(risk_components.values())
+        predictions['risk_score'] = min(100, total_risk)
+        predictions['risk_breakdown'] = risk_components
+        
+        market_base = 200
+        complexity_premium = features['region_complexity'] * 15
+        formation_premium = features['formation_hardness'] * 10
+        climate_adjustment = (10 - features['climate_score']) * 8
+        risk_premium = (predictions['risk_score'] / 100) * 50
+        
+        recommended_dayrate_low = market_base + complexity_premium + formation_premium
+        recommended_dayrate_high = recommended_dayrate_low + climate_adjustment + risk_premium
+        predictions['recommended_dayrate_range'] = {
+            'low': round(recommended_dayrate_low, 0),
+            'high': round(recommended_dayrate_high, 0),
+            'optimal': round((recommended_dayrate_low + recommended_dayrate_high) / 2, 0)
+        }
+        
+        data_quality_score = 85
+        if len(rig_data) < 3:
+            data_quality_score -= 15
+        elif len(rig_data) < 5:
+            data_quality_score -= 8
+        if features['region_complexity'] >= 9:
+            data_quality_score -= 10
+        predictions['confidence_percent'] = max(50, min(95, data_quality_score))
+        
+        match_score = np.mean([
+            self._calculate_capability_match(features),
+            features['contract_success_rate'] * 10,
+            features['climate_score'] * 10,
+            max(0, 100 - (features['region_complexity'] - 5) * 10),
+            100 - predictions['risk_score']
+        ])
+        predictions['match_score'] = round(match_score, 1)
+        return predictions
+    
+    def _calculate_capability_match(self, features):
+        """Calculate how well rig capability matches well requirements"""
+        ideal_dayrate = 150 + (features['region_complexity'] * 20)
+        difference = abs(features['avg_dayrate'] - ideal_dayrate)
+        match_score = max(0, 100 - (difference / ideal_dayrate * 100))
+        return match_score
+
+
+class MonteCarloScenarioSimulator:
+    """Monte Carlo Simulation for What-If Scenarios"""
+    
+    def __init__(self, num_simulations=1000):
+        self.num_simulations = num_simulations
+        self.random_state = np.random.RandomState(42)
+    
+    def _normalize_params(self, params):
+        """
+        Normalize and validate basin parameters with comprehensive fallbacks.
+        Handles parameter name variations, type conversions, and defaults.
+        """
+        if not params:
+            params = {}
+        
+        # Define parameter mappings and defaults
+        param_mappings = {
+            'basin_name': ['basin_name', 'basin'],
+            'climate_severity': ['climate_severity', 'climate', 'climate_score'],
+            'geology_difficulty': ['geology_difficulty', 'geology', 'difficulty'],
+            'water_depth': ['water_depth', 'water_depth_ft', 'depth_ft', 'depth'],
+            'typical_dayrate': ['typical_dayrate', 'typical_dayrate_k', 'dayrate', 'rate']
+        }
+        
+        defaults = {
+            'basin_name': 'Unknown Basin',
+            'climate_severity': 5.0,
+            'geology_difficulty': 5.0,
+            'water_depth': 2000.0,
+            'typical_dayrate': 250.0
+        }
+        
+        normalized = {}
+        
+        for standard_name, aliases in param_mappings.items():
+            value = None
+            
+            # Try to find parameter by any of its aliases
+            for alias in aliases:
+                if alias in params:
+                    value = params[alias]
+                    break
+            
+            # If not found, use default
+            if value is None:
+                normalized[standard_name] = defaults[standard_name]
+                continue
+            
+            # Type conversion and validation
+            try:
+                if standard_name == 'basin_name':
+                    normalized[standard_name] = str(value) if value else defaults[standard_name]
+                else:
+                    # Numeric parameters: convert and clamp
+                    num_value = float(value)
+                    
+                    if standard_name == 'water_depth':
+                        # Ensure positive depth; convert from feet to meters if > 100
+                        num_value = max(100, abs(num_value))  # Min 100m
+                        if num_value > 100:  # Likely in feet, convert to meters
+                            num_value = num_value / 3.28084 if num_value > 1000 else num_value
+                        normalized[standard_name] = min(num_value, 6000)  # Cap at 6000m
+                    else:
+                        # Climate/geology: 0-10 scale
+                        normalized[standard_name] = max(0, min(10, num_value))
+                        
+            except (ValueError, TypeError):
+                print(f"Warning: Invalid value for {standard_name}: {value}. Using default.")
+                normalized[standard_name] = defaults[standard_name]
+        
+        return normalized
+    
+    def simulate_basin_transfer(self, rig_data, target_basin_params):
+        """Simulate rig performance if moved to different basin - ROBUST VERSION with safe type conversion"""
+        
+        # === STEP 0: HANDLE EMPTY DATA ===
+        if rig_data is None or (hasattr(rig_data, 'empty') and rig_data.empty):
+            return {
+                'status': 'error',
+                'message': 'Empty rig data provided',
+                'basin_name': 'Unknown Basin',
+                'npt': {'mean': 0, 'std': 0, 'p10': 0, 'p50': 0, 'p90': 0},
+                'duration': {'mean': 0, 'std': 0, 'p10': 0, 'p50': 0, 'p90': 0},
+                'cost': {'mean': 0, 'std': 0, 'p10': 0, 'p50': 0, 'p90': 0},
+                'risk': {'mean': 0, 'std': 0, 'p10': 0, 'p50': 0, 'p90': 0},
+                'num_simulations': 0
+            }
+        
+        # === STEP 0B: HANDLE NULL PARAMS ===
+        if target_basin_params is None:
+            target_basin_params = {}
+        
+        # === STEP 1: TYPE-SAFE PARAMETER EXTRACTION ===
+        def safe_float(value, default):
+            """Safely convert to float with comprehensive error handling"""
+            try:
+                if value is None:
+                    return float(default)
+                if isinstance(value, str):
+                    value = value.strip()
+                    if not value:
+                        return float(default)
+                return float(value)
+            except (ValueError, TypeError, AttributeError) as e:
+                return float(default)
+        
+        # Extract and convert parameters with safe type conversion
+        climate_severity = safe_float(
+            target_basin_params.get('climate_severity', 0.5) if isinstance(target_basin_params, dict) else 0.5,
+            0.5
+        )
+        
+        geology_difficulty = safe_float(
+            target_basin_params.get('geology_difficulty', 0.5) if isinstance(target_basin_params, dict) else 0.5,
+            0.5
+        )
+        
+        water_depth = safe_float(
+            target_basin_params.get('water_depth_ft', 5000) if isinstance(target_basin_params, dict) else 5000,
+            5000
+        )
+        
+        typical_dayrate = safe_float(
+            target_basin_params.get('typical_dayrate_k', 300) if isinstance(target_basin_params, dict) else 300,
+            300
+        )
+        
+        basin_name = str(target_basin_params.get('basin_name', 'Unknown Basin')) if isinstance(target_basin_params, dict) else 'Unknown Basin'
+        
+        # === STEP 2: CLAMP TO VALID RANGES ===
+        climate_severity = max(0.0, min(1.0, climate_severity))
+        geology_difficulty = max(0.0, min(1.0, geology_difficulty))
+        water_depth = max(0.0, water_depth)
+        typical_dayrate = max(50.0, min(1000.0, typical_dayrate))
+        
+        # === STEP 3: EXTRACT BASELINE ===
+        baseline = self._extract_baseline_performance(rig_data)
+        
+        # === STEP 4: RUN SIMULATIONS ===
+        npt_results, duration_results, cost_results, risk_results = [], [], [], []
+        
+        for i in range(self.num_simulations):
+            try:
+                npt = self._simulate_npt(baseline['avg_npt'], climate_severity, geology_difficulty)
+                npt_results.append(npt)
+                
+                duration = self._simulate_duration(baseline['avg_duration'], climate_severity,
+                                                 geology_difficulty, water_depth)
+                duration_results.append(duration)
+                
+                cost = self._simulate_cost(duration, typical_dayrate, npt)
+                cost_results.append(cost)
+                
+                risk = self._simulate_risk(npt, duration, {
+                    'climate_severity': climate_severity,
+                    'geology_difficulty': geology_difficulty
+                })
+                risk_results.append(risk)
+            except Exception as e:
+                continue
+        
+        # === STEP 5: BUILD RESULTS ===
+        results = {
+            'status': 'success' if npt_results else 'error',
+            'basin_name': basin_name,
+            'npt': {
+                'mean': float(np.mean(npt_results)) if npt_results else 0,
+                'std': float(np.std(npt_results)) if npt_results else 0,
+                'p10': float(np.percentile(npt_results, 10)) if npt_results else 0,
+                'p50': float(np.percentile(npt_results, 50)) if npt_results else 0,
+                'p90': float(np.percentile(npt_results, 90)) if npt_results else 0,
+                'distribution': [float(x) for x in npt_results]
+            },
+            'duration': {
+                'mean': float(np.mean(duration_results)) if duration_results else 0,
+                'std': float(np.std(duration_results)) if duration_results else 0,
+                'p10': float(np.percentile(duration_results, 10)) if duration_results else 0,
+                'p50': float(np.percentile(duration_results, 50)) if duration_results else 0,
+                'p90': float(np.percentile(duration_results, 90)) if duration_results else 0,
+                'distribution': [float(x) for x in duration_results]
+            },
+            'cost': {
+                'mean': float(np.mean(cost_results)) if cost_results else 0,
+                'std': float(np.std(cost_results)) if cost_results else 0,
+                'p10': float(np.percentile(cost_results, 10)) if cost_results else 0,
+                'p50': float(np.percentile(cost_results, 50)) if cost_results else 0,
+                'p90': float(np.percentile(cost_results, 90)) if cost_results else 0,
+                'distribution': [float(x) for x in cost_results]
+            },
+            'risk': {
+                'mean': float(np.mean(risk_results)) if risk_results else 0,
+                'std': float(np.std(risk_results)) if risk_results else 0,
+                'p10': float(np.percentile(risk_results, 10)) if risk_results else 0,
+                'p50': float(np.percentile(risk_results, 50)) if risk_results else 0,
+                'p90': float(np.percentile(risk_results, 90)) if risk_results else 0,
+                'distribution': [float(x) for x in risk_results]
+            },
+            'num_simulations': len(npt_results),
+            'parameters_used': {
+                'climate_severity': climate_severity,
+                'geology_difficulty': geology_difficulty,
+                'water_depth': water_depth,
+                'typical_dayrate': typical_dayrate,
+                'basin_name': basin_name
+            }
+        }
+        
+        return results
+    
+    def _extract_baseline_performance(self, rig_data):
+        """Extract baseline performance metrics"""
+        baseline = {'avg_npt': 12, 'avg_duration': 40, 'avg_dayrate': 200}
+        if 'Contract Length' in rig_data.columns:
+            baseline['avg_duration'] = rig_data['Contract Length'].mean() / 3
+        if 'Dayrate ($k)' in rig_data.columns:
+            baseline['avg_dayrate'] = rig_data['Dayrate ($k)'].mean()
+        return baseline
+    
+    def _simulate_npt(self, baseline_npt, climate_severity, geology_difficulty):
+        """Simulate NPT with variability"""
+        climate_impact = self.random_state.normal(climate_severity * 0.8, climate_severity * 0.3)
+        geology_impact = self.random_state.normal(geology_difficulty * 0.6, geology_difficulty * 0.2)
+        random_factor = self.random_state.normal(1.0, 0.15)
+        npt = (baseline_npt + climate_impact + geology_impact) * random_factor
+        return max(2, min(40, npt))
+    
+    def _simulate_duration(self, baseline_duration, climate_severity, geology_difficulty, water_depth):
+        """Simulate well duration"""
+        climate_delay = self.random_state.normal(climate_severity * 1.5, climate_severity * 0.5)
+        geology_time = self.random_state.normal(geology_difficulty * 1.2, geology_difficulty * 0.4)
+        depth_factor = 1 + (water_depth / 2000)
+        random_factor = self.random_state.normal(1.0, 0.2)
+        duration = (baseline_duration + climate_delay + geology_time) * depth_factor * random_factor
+        return max(15, min(120, duration))
+    
+    def _simulate_cost(self, duration, dayrate, npt_percent):
+        """Simulate total cost"""
+        operating_days = duration
+        npt_cost_multiplier = 1 + (npt_percent / 100) * 0.5
+        total_cost = operating_days * dayrate * npt_cost_multiplier
+        random_factor = self.random_state.normal(1.0, 0.1)
+        return total_cost * random_factor
+    
+    def _simulate_risk(self, npt, duration, basin_params):
+        """Simulate overall risk score"""
+        # Handle both old and new parameter formats
+        try:
+            climate_sev = float(basin_params.get('climate_severity', basin_params.get('climate', 5.0)))
+        except (ValueError, TypeError):
+            climate_sev = 5.0
+        
+        try:
+            geology_diff = float(basin_params.get('geology_difficulty', basin_params.get('geology', 5.0)))
+        except (ValueError, TypeError):
+            geology_diff = 5.0
+        
+        npt_risk = npt * 1.5
+        duration_risk = (duration - 30) * 0.8 if duration > 30 else 0
+        climate_risk = climate_sev * 4
+        geology_risk = geology_diff * 3.5
+        total_risk = (npt_risk + duration_risk + climate_risk + geology_risk)
+        random_factor = self.random_state.normal(1.0, 0.15)
+        return max(0, min(100, total_risk * random_factor))
+
+
+class ContractorPerformanceAnalyzer:
+    """Analyze contractor performance consistency"""
+    
+    def __init__(self):
+        self.consistency_weights = {'rop_variance': 0.25, 'npt_variance': 0.25, 'schedule_variance': 0.20,
+                                   'delivery_reliability': 0.20, 'crew_stability': 0.10}
+    
+    def analyze_contractor_consistency(self, contractor_data):
+        """Comprehensive contractor consistency analysis"""
+        if contractor_data.empty or len(contractor_data) < 2:
+            return {'overall_consistency': 50, 'grade': 'Insufficient Data', 'note': 'Need at least 2 contracts'}
+        
+        metrics = {}
+        metrics['rop_consistency'] = self._analyze_rop_variance(contractor_data)
+        metrics['npt_consistency'] = self._analyze_npt_variance(contractor_data)
+        metrics['schedule_consistency'] = self._analyze_schedule_variance(contractor_data)
+        metrics['delivery_reliability'] = self._analyze_delivery_reliability(contractor_data)
+        metrics['crew_stability'] = self._analyze_crew_stability(contractor_data)
+        
+        weights = [0.25, 0.25, 0.20, 0.20, 0.10]
+        scores = [metrics['rop_consistency'], metrics['npt_consistency'], metrics['schedule_consistency'],
+                 metrics['delivery_reliability'], metrics['crew_stability']]
+        overall = sum(s * w for s, w in zip(scores, weights))
+        
+        sample_size_factor = min(1.0, len(contractor_data) / 10)
+        confidence_adjusted_score = overall * (0.7 + 0.3 * sample_size_factor)
+        
+        metrics['overall_consistency'] = confidence_adjusted_score
+        metrics['consistency_grade'] = self._get_consistency_grade(confidence_adjusted_score)
+        metrics['sample_size'] = len(contractor_data)
+        return metrics
+    
+    def _analyze_rop_variance(self, data):
+        if 'Contract Length' in data.columns:
+            lengths = data['Contract Length'].dropna()
+            if len(lengths) >= 2:
+                mean_length = lengths.mean()
+                std_length = lengths.std()
+                cv = (std_length / mean_length) * 100 if mean_length > 0 else 50
+                consistency_score = max(40, 100 - cv)
+                return min(100, consistency_score)
+        return 70
+    
+    def _analyze_npt_variance(self, data):
+        npt_col = 'NPT %' if 'NPT %' in data.columns else ('NPT_Percent' if 'NPT_Percent' in data.columns else None)
+        if npt_col:
+            npt_values = data[npt_col].dropna()
+            if len(npt_values) >= 2:
+                mean_npt = npt_values.mean()
+                std_npt = npt_values.std()
+                variance_score = 95 if std_npt < 3 else (85 if std_npt < 5 else (70 if std_npt < 8 else 55))
+                if mean_npt > 20:
+                    variance_score *= 0.8
+                return variance_score
+        return 70
+    
+    def _analyze_schedule_variance(self, data):
+        if 'Contract Length' not in data.columns:
+            return 70
+        lengths = data['Contract Length'].dropna()
+        if len(lengths) < 2:
+            return 70
+        mean_length = lengths.mean()
+        std_length = lengths.std()
+        cv = (std_length / mean_length) * 100 if mean_length > 0 else 50
+        return 90 if cv < 15 else (75 if cv < 25 else 60)
+    
+    def _analyze_delivery_reliability(self, data):
+        if 'Status' in data.columns:
+            status_col = data['Status'].dropna()
+            if not status_col.empty:
+                status_lower = status_col.str.lower()
+                successful = status_lower.str.contains('complete|successful|finished|active|operating', na=False).sum()
+                failed = status_lower.str.contains('terminated|cancelled|suspended|failed', na=False).sum()
+                total = len(status_col)
+                if total > 0:
+                    success_rate = (successful / total) * 100
+                    failure_penalty = (failed / total) * 20
+                    return max(0, min(100, success_rate - failure_penalty))
+        return 75
+    
+    def _analyze_crew_stability(self, data):
+        if 'Contract Start Date' not in data.columns or len(data) < 3:
+            return 70
+        sorted_data = data.sort_values('Contract Start Date')
+        start_dates = pd.to_datetime(sorted_data['Contract Start Date'], errors='coerce').dropna()
+        if len(start_dates) < 2:
+            return 70
+        gaps = [(start_dates.iloc[i] - start_dates.iloc[i-1]).days for i in range(1, len(start_dates))]
+        avg_gap = np.mean(gaps)
+        return 95 if avg_gap < 30 else (85 if avg_gap < 90 else 70)
+    
+    def _get_consistency_grade(self, score):
+        if score >= 90:
+            return 'A+ (Highly Consistent)'
+        elif score >= 80:
+            return 'A (Very Consistent)'
+        elif score >= 70:
+            return 'B (Consistent)'
+        return 'C (Moderately Consistent)'
+
+
+class LearningCurveAnalyzer:
+    """Analyze and visualize rig learning curves"""
+    
+    def __init__(self):
+        pass
+    
+    def calculate_learning_curve(self, rig_data):
+        """Calculate learning curve parameters using power law"""
+        if len(rig_data) < 3:
+            return {'status': 'INSUFFICIENT_DATA', 'message': 'Need at least 3 data points'}
+        
+        if 'Contract Start Date' in rig_data.columns:
+            sorted_data = rig_data.sort_values('Contract Start Date').reset_index(drop=True)
+        else:
+            sorted_data = rig_data.reset_index(drop=True)
+        
+        if 'Contract Length' not in sorted_data.columns:
+            return {'status': 'NO_TIME_DATA', 'message': 'No time-based data available'}
+        
+        times = sorted_data['Contract Length'].dropna().values
+        if len(times) < 3:
+            return {'status': 'INSUFFICIENT_DATA', 'message': 'Need at least 3 time measurements'}
+        
+        n = np.arange(1, len(times) + 1)
+        log_times = np.log(times)
+        log_n = np.log(n)
+        
+        slope, intercept = np.polyfit(log_n, log_times, 1)
+        k = -slope
+        T1 = np.exp(intercept)
+        
+        predicted_log_times = intercept + slope * log_n
+        ss_res = np.sum((log_times - predicted_log_times) ** 2)
+        ss_tot = np.sum((log_times - np.mean(log_times)) ** 2)
+        r_squared = 1 - (ss_res / ss_tot) if ss_tot > 0 else 0
+        
+        future_n = np.arange(1, len(times) + 6)
+        predicted_times = T1 * (future_n ** -k)
+        
+        improvement_percent = ((times[0] - times[-1]) / times[0] * 100) if times[0] > 0 else 0
+        
+        return {
+            'status': 'SUCCESS',
+            'learning_rate_k': k,
+            'initial_time_T1': T1,
+            'r_squared': r_squared,
+            'actual_times': times.tolist(),
+            'predicted_times': predicted_times.tolist(),
+            'improvement_percent': improvement_percent,
+            'n_contracts': len(times),
+            'current_efficiency': times[-1] if len(times) > 0 else 0,
+            'projected_efficiency': predicted_times[-1] if len(predicted_times) > 0 else 0
+        }
+
+
+class InvisibleLostTimeDetector:
+    """AI-powered pattern mining to detect invisible lost time (ILT)"""
+    
+    def __init__(self):
+        pass
+    
+    def detect_ilt(self, rig_data):
+        """Detect invisible lost time from available data"""
+        ilt_findings = []
+        total_ilt_days = 0
+        
+        if 'Contract Length' in rig_data.columns:
+            lengths = rig_data['Contract Length'].dropna()
+            if len(lengths) >= 3:
+                mean_length = lengths.mean()
+                std_length = lengths.std()
+                if std_length > 0:
+                    ilt_findings.append({'type': 'Duration Variance', 'severity': 'MEDIUM'})
+                    total_ilt_days += std_length * 0.5
+        
+        # Baseline ILT estimate (industry typical 7-10%)
+        total_days = rig_data['Contract Length'].sum() if 'Contract Length' in rig_data.columns else 0
+        base_ilt_rate = 0.07
+        
+        if 'Current Location' in rig_data.columns:
+            location = str(rig_data['Current Location'].iloc[0]).lower() if len(rig_data) > 0 else ''
+            if any(term in location for term in ['deepwater', 'hpht', 'arctic']):
+                base_ilt_rate += 0.03
+        
+        base_ilt_days = total_days * base_ilt_rate
+        total_ilt_days += base_ilt_days
+        
+        ilt_percentage = (total_ilt_days / total_days * 100) if total_days > 0 else 0
+        avg_dayrate = rig_data['Dayrate ($k)'].mean() if 'Dayrate ($k)' in rig_data.columns else 200
+        cost_impact = total_ilt_days * avg_dayrate
+        
+        return {
+            'total_ilt_days': total_ilt_days,
+            'ilt_percentage': ilt_percentage,
+            'cost_impact_$k': cost_impact,
+            'findings': ilt_findings,
+            'severity': 'LOW' if ilt_percentage < 5 else ('MODERATE' if ilt_percentage < 10 else 'HIGH')
+        }
+
+
 class RigEfficiencyCalculator:
     """
     Advanced Rig Efficiency Calculator with Multi-Factor Analysis
@@ -925,6 +1576,12 @@ class RigEfficiencyCalculator:
     
     def __init__(self):
         self.climate_ai = AdvancedClimateIntelligence()
+        self.benchmark_model = RegionalBenchmarkModel()
+        self.ml_predictor = RigWellMatchPredictor()
+        self.monte_carlo = MonteCarloScenarioSimulator(num_simulations=1000)
+        self.contractor_analyzer = ContractorPerformanceAnalyzer()
+        self.learning_analyzer = LearningCurveAnalyzer()
+        self.ilt_detector = InvisibleLostTimeDetector()
         self.efficiency_weights = {
             'contract_utilization': 0.25,
             'dayrate_efficiency': 0.20,
@@ -1452,5 +2109,285 @@ class RigEfficiencyCalculator:
         return comparisons
 
 
+class RigAvailabilitySearchEngine:
+    """
+    Search rigs based on available contract data
+    Works with existing columns without lithology/pressure
+    """
+    
+    def __init__(self, climate_intelligence):
+        """
+        Initialize the search engine with climate intelligence
+        
+        Args:
+            climate_intelligence: Instance of AdvancedClimateIntelligence
+        """
+        self.climate_ai = climate_intelligence
+        
+        # Location-based lithology inference (optional)
+        self.location_lithology_map = {
+            'US Gulf': ['Sandstone', 'Shale'],
+            'North Sea': ['Sandstone', 'Carbonate'],
+            'Middle East': ['Carbonate', 'Limestone'],
+            'Brazil': ['Carbonate', 'Sandstone'],
+            'West Africa': ['Sandstone'],
+            'Southeast Asia': ['Sandstone', 'Carbonate']
+        }
+        
+        # Rig type inference from contractor/rig name (if available)
+        self.rig_type_keywords = {
+            'jackup': ['Jackup', 'Jack-up', 'JU'],
+            'semi': ['Semi', 'Semisubmersible', 'SS'],
+            'drillship': ['Drillship', 'DS'],
+            'platform': ['Platform', 'Fixed']
+        }
+        
+        # Regional location groupings for fuzzy matching
+        self.regional_groups = {
+            'Gulf of Mexico': ['gulf of mexico', 'us gulf', 'mexico gulf', 'gom'],
+            'North Sea': ['north sea', 'uk north sea', 'norway', 'norwegian sea'],
+            'Middle East': ['saudi arabia', 'uae', 'qatar', 'kuwait', 'iraq', 'oman'],
+            'West Africa': ['nigeria', 'angola', 'ghana', 'congo', 'equatorial guinea'],
+            'Southeast Asia': ['malaysia', 'indonesia', 'thailand', 'vietnam', 'brunei'],
+            'Brazil': ['brazil', 'santos basin', 'campos basin'],
+            'Australia': ['australia', 'timor sea', 'browse basin']
+        }
+    
+    def search_available_rigs(self, df, filters):
+        """
+        Main search function using only available data
+        
+        Parameters:
+        -----------
+        df : DataFrame
+            Your rig contract data
+        filters : dict
+            {
+                'location': str or list,
+                'region': str or list,
+                'dayrate_min': float,
+                'dayrate_max': float,
+                'climate_preference': str,
+                'availability_status': str,
+                'contractor': str (optional)
+            }
+        
+        Returns:
+        --------
+        DataFrame with available rigs and match scores
+        """
+        
+        results = df.copy()
+        
+        # 1. FILTER BY LOCATION
+        if filters.get('location') and filters['location'] != 'All':
+            if isinstance(filters['location'], list):
+                results = results[results['Current Location'].isin(filters['location'])]
+            else:
+                results = results[results['Current Location'] == filters['location']]
+        
+        # 2. FILTER BY REGION
+        if filters.get('region') and filters['region'] != 'All':
+            results = results[results['Region'] == filters['region']]
+        
+        # 3. FILTER BY DAY RATE RANGE
+        if filters.get('dayrate_min') is not None:
+            results = results[results['Dayrate ($k)'] >= filters['dayrate_min']]
+        if filters.get('dayrate_max') is not None:
+            results = results[results['Dayrate ($k)'] <= filters['dayrate_max']]
+        
+        # 4. FILTER BY AVAILABILITY (based on contract dates)
+        if filters.get('availability_status'):
+            results = self._filter_by_availability(results, filters['availability_status'])
+        
+        # 5. FILTER BY STATUS
+        if filters.get('status'):
+            results = results[results['Status'].isin(filters['status'])]
+        
+        # 6. CALCULATE MATCH SCORES
+        results = self._calculate_match_scores(results, filters)
+        
+        # 7. ADD CLIMATE COMPATIBILITY
+        results = self._add_climate_scores(results, filters.get('climate_preference'))
+        
+        # 8. SORT BY MATCH SCORE
+        results = results.sort_values('Match_Score', ascending=False)
+        
+        return results
+    
+    def _filter_by_availability(self, df, status):
+        """Filter based on contract availability"""
+        today = pd.Timestamp.now()
+        
+        if status == 'Available Now':
+            # Contracts ended or ending within 7 days
+            mask = (
+                (df['Contract End Date'].notna()) & 
+                (df['Contract End Date'] <= today + pd.Timedelta(days=7))
+            ) | (df['Status'].isin(['Available', 'Idle', 'Stacked']))
+            return df[mask]
+        
+        elif status == 'Available Soon':
+            # Contracts ending within 30 days
+            mask = (
+                (df['Contract End Date'].notna()) & 
+                (df['Contract End Date'] <= today + pd.Timedelta(days=30)) &
+                (df['Contract End Date'] > today)
+            )
+            return df[mask]
+        
+        elif status == 'Available <90 days':
+            mask = (
+                (df['Contract End Date'].notna()) & 
+                (df['Contract End Date'] <= today + pd.Timedelta(days=90))
+            )
+            return df[mask]
+        
+        else:  # All
+            return df
+    
+    def _calculate_match_scores(self, df, filters):
+        """Calculate how well each rig matches criteria"""
+        
+        def calculate_row_score(row):
+            score = 0
+            max_score = 100
+            
+            # Location match (40 points)
+            if filters.get('location') and filters['location'] != 'All':
+                if row['Current Location'] == filters['location']:
+                    score += 40
+                elif self._is_nearby_location(row['Current Location'], filters['location']):
+                    score += 20  # Partial credit for nearby locations
+            else:
+                score += 40  # Full points if no location specified
+            
+            # Day rate match (30 points)
+            if filters.get('dayrate_min') and filters.get('dayrate_max'):
+                rate = row['Dayrate ($k)']
+                mid_range = (filters['dayrate_min'] + filters['dayrate_max']) / 2
+                rate_diff = abs(rate - mid_range)
+                max_diff = (filters['dayrate_max'] - filters['dayrate_min']) / 2
+                
+                if max_diff > 0:
+                    rate_score = 30 * (1 - min(rate_diff / max_diff, 1))
+                    score += rate_score
+                else:
+                    score += 30
+            else:
+                score += 30
+            
+            # Availability (30 points)
+            if pd.notna(row.get('Contract Days Remaining')):
+                days_remaining = row['Contract Days Remaining']
+                if days_remaining <= 0:
+                    score += 30  # Immediately available
+                elif days_remaining <= 30:
+                    score += 25  # Available soon
+                elif days_remaining <= 90:
+                    score += 15  # Available within quarter
+                else:
+                    score += 5   # Future availability
+            else:
+                # No contract info - assume available
+                score += 30
+            
+            return score
+        
+        df['Match_Score'] = df.apply(calculate_row_score, axis=1)
+        return df
+    
+    def _add_climate_scores(self, df, climate_preference):
+        """Add climate compatibility scores"""
+        
+        def get_climate_score(location):
+            if not location or pd.isna(location):
+                return 5  # Neutral score
+            
+            location_lower = str(location).lower()
+            
+            # Use existing climate intelligence
+            climate_profile = None
+            for key in self.climate_ai.climate_profiles.keys():
+                if key in location_lower or location_lower in key:
+                    climate_profile = self.climate_ai.climate_profiles[key]
+                    break
+            
+            if climate_profile:
+                # Score based on efficiency factor (higher is better)
+                efficiency = climate_profile.get('efficiency_factor', 0.8)
+                return efficiency * 10  # Convert to 0-10 scale
+            
+            return 5  # Default neutral score
+        
+        df['Climate_Score'] = df['Current Location'].apply(get_climate_score)
+        
+        # Adjust match score based on climate
+        if climate_preference and climate_preference != 'Any':
+            df['Match_Score'] = df['Match_Score'] * (0.9 + df['Climate_Score'] / 100)
+        
+        return df
+    
+    def _is_nearby_location(self, loc1, loc2):
+        """Check if locations are in same region"""
+        # Simple region matching - can be enhanced
+        regions_map = {
+            'US Gulf': ['Gulf of Mexico', 'US Gulf', 'GoM'],
+            'North Sea': ['North Sea', 'Norway', 'UK', 'Netherlands'],
+            'Middle East': ['Saudi Arabia', 'UAE', 'Qatar', 'Kuwait'],
+            'Brazil': ['Brazil', 'South America'],
+            'West Africa': ['Nigeria', 'Angola', 'Ghana', 'West Africa']
+        }
+        
+        for region, locations in regions_map.items():
+            if (any(l.lower() in str(loc1).lower() for l in locations) and 
+                any(l.lower() in str(loc2).lower() for l in locations)):
+                return True
+        
+        return False
+    
+    def infer_rig_capabilities(self, df):
+        """
+        Infer lithology and pressure capabilities from location and rig name
+        (Optional enhancement)
+        """
+        
+        def infer_lithology(row):
+            location = str(row.get('Current Location', '')).lower()
+            
+            for region, lithos in self.location_lithology_map.items():
+                if region.lower() in location:
+                    return ', '.join(lithos)
+            
+            return 'Mixed'  # Default
+        
+        def infer_rig_type(row):
+            rig_name = str(row.get('Drilling Unit Name', '')).lower()
+            contractor = str(row.get('Contractor', '')).lower()
+            
+            for rig_type, keywords in self.rig_type_keywords.items():
+                for keyword in keywords:
+                    if keyword.lower() in rig_name or keyword.lower() in contractor:
+                        return rig_type.title()
+            
+            return 'Unknown'
+        
+        df['Inferred_Lithology'] = df.apply(infer_lithology, axis=1)
+        df['Inferred_Rig_Type'] = df.apply(infer_rig_type, axis=1)
+        
+        return df
+
+
 # Export main classes
-__all__ = ['RigEfficiencyCalculator', 'AdvancedClimateIntelligence', 'preprocess_dataframe']
+__all__ = [
+    'RigEfficiencyCalculator',
+    'AdvancedClimateIntelligence',
+    'RegionalBenchmarkModel',
+    'RigWellMatchPredictor',
+    'MonteCarloScenarioSimulator',
+    'ContractorPerformanceAnalyzer',
+    'LearningCurveAnalyzer',
+    'InvisibleLostTimeDetector',
+    'RigAvailabilitySearchEngine',
+    'preprocess_dataframe'
+]

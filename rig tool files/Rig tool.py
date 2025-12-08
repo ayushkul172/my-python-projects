@@ -817,14 +817,1714 @@ class AdvancedClimateIntelligence:
                 'recommendations': ['Climate analysis unavailable'],
                 'optimal_periods': []
             }
-class RigEfficiencyCalculator:
+
+class RegionalBenchmarkModel:
     """
-      Advanced Rig Efficiency Calculator with Multi-Factor Analysis and AI Climate Intelligence
+    Expected Performance Models for each region + geology type
+    Provides normalized benchmarks for fair comparison
+    """
+    def __init__(self):
+        self.benchmarks = self._initialize_benchmarks()
+    
+    def _initialize_benchmarks(self):
+        """Initialize regional and geological benchmarks"""
+        return {
+            # Offshore vs Onshore
+            'offshore': {
+                'expected_rop': 35,  # m/hr
+                'expected_npt': 15,  # %
+                'expected_days_per_well': 45,
+                'cost_per_meter': 800,
+                'dayrate_benchmark': 300  # $k
+            },
+            'onshore': {
+                'expected_rop': 55,
+                'expected_npt': 8,
+                'expected_days_per_well': 25,
+                'cost_per_meter': 350,
+                'dayrate_benchmark': 150
+            },
+            
+            # Formation types
+            'hpht': {
+                'expected_rop': 20,
+                'expected_npt': 25,
+                'expected_days_per_well': 65,
+                'cost_per_meter': 1200,
+                'difficulty_multiplier': 1.8
+            },
+            'hard_formation': {
+                'expected_rop': 25,
+                'expected_npt': 18,
+                'expected_days_per_well': 55,
+                'cost_per_meter': 950,
+                'difficulty_multiplier': 1.5
+            },
+            'soft_formation': {
+                'expected_rop': 65,
+                'expected_npt': 7,
+                'expected_days_per_well': 20,
+                'cost_per_meter': 400,
+                'difficulty_multiplier': 0.8
+            },
+            
+            # Climate zones
+            'arctic': {
+                'expected_rop': 30,
+                'expected_npt': 22,
+                'expected_days_per_well': 60,
+                'cost_per_meter': 1100,
+                'difficulty_multiplier': 1.7
+            },
+            'desert': {
+                'expected_rop': 50,
+                'expected_npt': 9,
+                'expected_days_per_well': 28,
+                'cost_per_meter': 500,
+                'difficulty_multiplier': 0.9
+            },
+            'tropical': {
+                'expected_rop': 40,
+                'expected_npt': 14,
+                'expected_days_per_well': 40,
+                'cost_per_meter': 700,
+                'difficulty_multiplier': 1.2
+            },
+            
+            # Water depth
+            'deepwater': {
+                'expected_rop': 30,
+                'expected_npt': 18,
+                'expected_days_per_well': 55,
+                'cost_per_meter': 1000,
+                'difficulty_multiplier': 1.6
+            },
+            'ultra_deepwater': {
+                'expected_rop': 25,
+                'expected_npt': 22,
+                'expected_days_per_well': 70,
+                'cost_per_meter': 1400,
+                'difficulty_multiplier': 2.0
+            },
+            'shallow_water': {
+                'expected_rop': 45,
+                'expected_npt': 10,
+                'expected_days_per_well': 30,
+                'cost_per_meter': 600,
+                'difficulty_multiplier': 1.0
+            }
+        }
+    
+    def get_benchmark(self, rig_data):
+        """Get appropriate benchmark for rig"""
+        # Identify rig characteristics
+        location = str(rig_data['Current Location'].iloc[0]).lower() if 'Current Location' in rig_data.columns and len(rig_data) > 0 else ''
+        region = str(rig_data['Region'].iloc[0]).lower() if 'Region' in rig_data.columns and len(rig_data) > 0 else ''
+        
+        # Determine category
+        categories = []
+        
+        if any(term in location for term in ['offshore', 'sea', 'platform']):
+            categories.append('offshore')
+        elif any(term in location for term in ['onshore', 'land']):
+            categories.append('onshore')
+        
+        if any(term in location for term in ['deepwater', 'deep water']):
+            if 'ultra' in location:
+                categories.append('ultra_deepwater')
+            else:
+                categories.append('deepwater')
+        
+        if any(term in region for term in ['arctic', 'north sea', 'norway']):
+            categories.append('arctic')
+        elif any(term in region for term in ['middle east', 'saudi', 'uae', 'qatar']):
+            categories.append('desert')
+        elif any(term in region for term in ['gulf of mexico', 'brazil', 'indonesia']):
+            categories.append('tropical')
+        
+        # Get combined benchmark
+        if not categories:
+            categories = ['offshore']  # Default
+        
+        combined_benchmark = {
+            'expected_rop': 0,
+            'expected_npt': 0,
+            'expected_days_per_well': 0,
+            'cost_per_meter': 0,
+            'difficulty_multiplier': 1.0
+        }
+        
+        for cat in categories:
+            if cat in self.benchmarks:
+                bench = self.benchmarks[cat]
+                for key in combined_benchmark:
+                    if key == 'difficulty_multiplier':
+                        combined_benchmark[key] *= bench.get(key, 1.0)
+                    else:
+                        combined_benchmark[key] += bench.get(key, 0)
+        
+        # Average the values
+        count = len(categories)
+        for key in combined_benchmark:
+            if key != 'difficulty_multiplier' and count > 0:
+                combined_benchmark[key] /= count
+        
+        combined_benchmark['categories'] = categories
+        
+        return combined_benchmark
+    
+    def calculate_normalized_performance(self, rig_data, actual_metrics):
+        """Calculate performance normalized against benchmark"""
+        benchmark = self.get_benchmark(rig_data)
+        
+        normalized = {}
+        
+        # ROP performance
+        if 'rop' in actual_metrics:
+            normalized['rop_performance'] = (actual_metrics['rop'] / benchmark['expected_rop'] * 100) if benchmark['expected_rop'] > 0 else 100
+        
+        # NPT performance (lower is better)
+        if 'npt' in actual_metrics:
+            normalized['npt_performance'] = (benchmark['expected_npt'] / actual_metrics['npt'] * 100) if actual_metrics['npt'] > 0 else 100
+        
+        # Time performance
+        if 'days_per_well' in actual_metrics:
+            normalized['time_performance'] = (benchmark['expected_days_per_well'] / actual_metrics['days_per_well'] * 100) if actual_metrics['days_per_well'] > 0 else 100
+        
+        # Cost performance
+        if 'cost_per_meter' in actual_metrics:
+            normalized['cost_performance'] = (benchmark['cost_per_meter'] / actual_metrics['cost_per_meter'] * 100) if actual_metrics['cost_per_meter'] > 0 else 100
+        
+        # Overall normalized score
+        normalized['overall_normalized'] = np.mean([v for v in normalized.values()])
+        
+        normalized['benchmark_used'] = benchmark['categories']
+        normalized['difficulty_multiplier'] = benchmark['difficulty_multiplier']
+        
+        return normalized
+
+class RigWellMatchPredictor:
+    """
+    Machine Learning Engine for Rig-Well Matching
+    Predicts: execution time, AFE probability, NPT%, risk score, recommended dayrate
     """
     
     def __init__(self):
+        self.models = {}
+        self.feature_scaler = MinMaxScaler()
+        self.is_trained = False
+        
+    def prepare_features(self, rig_data, well_params=None):
+        """
+        Prepare feature vector for ML prediction
+        
+        Parameters:
+        - rig_data: Historical rig performance data
+        - well_params: Target well parameters (optional)
+        """
+        features = {}
+        
+        # 1. Rig Capability Features
+        if 'Dayrate ($k)' in rig_data.columns:
+            features['avg_dayrate'] = rig_data['Dayrate ($k)'].mean()
+        else:
+            features['avg_dayrate'] = 200  # Default
+        
+        if 'Contract Length' in rig_data.columns:
+            features['avg_contract_length'] = rig_data['Contract Length'].mean()
+        else:
+            features['avg_contract_length'] = 180
+        
+        # 2. Location/Region encoding
+        features['region_complexity'] = self._encode_region_complexity(rig_data)
+        
+        # 3. Climate factors
+        features['climate_score'] = self._get_climate_score(rig_data)
+        
+        # 4. Water depth (if available)
+        if 'Water Depth' in rig_data.columns:
+            features['water_depth'] = rig_data['Water Depth'].mean()
+        else:
+            features['water_depth'] = 500  # Default moderate depth
+        
+        # 5. Historical performance indicators
+        features['contract_success_rate'] = self._calculate_success_rate(rig_data)
+        features['utilization_rate'] = self._calculate_utilization(rig_data)
+        
+        # 6. Well-specific parameters (if provided)
+        if well_params:
+            features['target_depth'] = well_params.get('depth', 3000)
+            features['formation_hardness'] = well_params.get('hardness', 5)  # 1-10 scale
+            features['temperature'] = well_params.get('temperature', 150)
+            features['pressure'] = well_params.get('pressure', 5000)
+        else:
+            # Use defaults
+            features['target_depth'] = 3000
+            features['formation_hardness'] = 5
+            features['temperature'] = 150
+            features['pressure'] = 5000
+        
+        return features
+    
+    def _encode_region_complexity(self, rig_data):
+        """Encode region complexity as numeric value"""
+        if 'Current Location' not in rig_data.columns:
+            return 5  # Medium complexity
+        
+        location = str(rig_data['Current Location'].iloc[0]).lower() if len(rig_data) > 0 else ''
+        
+        complexity_map = {
+            'ultra-deep': 10,
+            'deepwater': 8,
+            'hpht': 9,
+            'arctic': 8,
+            'north sea': 7,
+            'gulf of mexico': 6,
+            'offshore': 5,
+            'onshore': 3,
+            'middle east': 2
+        }
+        
+        for key, value in complexity_map.items():
+            if key in location:
+                return value
+        
+        return 5  # Default
+    
+    def _get_climate_score(self, rig_data):
+        """Get simplified climate score"""
+        if 'Current Location' not in rig_data.columns:
+            return 7
+        
+        location = str(rig_data['Current Location'].iloc[0]).lower() if len(rig_data) > 0 else ''
+        
+        # Inverse climate difficulty (10 = best, 1 = worst)
+        climate_map = {
+            'middle east': 9,
+            'saudi': 9,
+            'uae': 9,
+            'qatar': 9,
+            'brazil': 7,
+            'gulf of mexico': 5,
+            'north sea': 3,
+            'arctic': 2,
+            'norway': 3
+        }
+        
+        for key, value in climate_map.items():
+            if key in location:
+                return value
+        
+        return 7  # Default moderate
+    
+    def _calculate_success_rate(self, rig_data):
+        """Calculate historical success rate"""
+        if 'Status' in rig_data.columns:
+            status_col = rig_data['Status'].dropna()
+            if not status_col.empty:
+                status_lower = status_col.str.lower()
+                successful = status_lower.str.contains('complete|active|operating', case=False, na=False).sum()
+                total = len(status_lower)
+                return (successful / total * 10) if total > 0 else 7
+        return 7  # Default moderate success
+    
+    def _calculate_utilization(self, rig_data):
+        """Calculate utilization score (0-10)"""
+        if 'Contract Start Date' not in rig_data.columns or 'Contract End Date' not in rig_data.columns:
+            return 7
+        
+        valid_contracts = rig_data[
+            rig_data['Contract Start Date'].notna() & 
+            rig_data['Contract End Date'].notna()
+        ].copy()
+        
+        if valid_contracts.empty:
+            return 7
+        
+        valid_contracts['Contract Start Date'] = pd.to_datetime(valid_contracts['Contract Start Date'], errors='coerce')
+        valid_contracts['Contract End Date'] = pd.to_datetime(valid_contracts['Contract End Date'], errors='coerce')
+        valid_contracts['contract_days'] = (
+            valid_contracts['Contract End Date'] - valid_contracts['Contract Start Date']
+        ).dt.days
+        
+        total_contracted_days = valid_contracts['contract_days'].sum()
+        earliest_start = valid_contracts['Contract Start Date'].min()
+        latest_end = valid_contracts['Contract End Date'].max()
+        total_days = (latest_end - earliest_start).days
+        
+        if total_days <= 0:
+            return 7
+        
+        utilization = (total_contracted_days / total_days) * 10
+        return min(utilization, 10)
+    
+    def predict_well_execution(self, rig_data, well_params=None):
+        """
+        Predict well execution outcomes using rule-based ML approach
+        
+        Returns:
+        - expected_time: Estimated execution days
+        - afe_probability: Probability of meeting AFE (0-100%)
+        - expected_npt: Expected NPT percentage
+        - risk_score: Overall risk score (0-100, lower is better)
+        - recommended_dayrate: Suggested dayrate range
+        - confidence: Prediction confidence (0-100%)
+        """
+        # Get features
+        features = self.prepare_features(rig_data, well_params)
+        
+        # Rule-based prediction (simulating ML)
+        predictions = {}
+        
+        # 1. Expected Execution Time
+        base_time = features['target_depth'] / 100  # Base: 100m per day
+        
+        # Adjust for complexity
+        complexity_multiplier = 1 + (features['region_complexity'] / 20)
+        climate_multiplier = 1 + ((10 - features['climate_score']) / 20)
+        formation_multiplier = 1 + (features['formation_hardness'] / 20)
+        
+        # Adjust for rig capability
+        capability_factor = features['avg_dayrate'] / 200  # Normalize around $200k
+        capability_multiplier = 1 / (0.8 + capability_factor * 0.4)  # Better rigs faster
+        
+        # Adjust for rig experience
+        experience_multiplier = 1 / (0.8 + features['contract_success_rate'] / 25)
+        
+        expected_time = (base_time * 
+                        complexity_multiplier * 
+                        climate_multiplier * 
+                        formation_multiplier * 
+                        capability_multiplier * 
+                        experience_multiplier)
+        
+        predictions['expected_time_days'] = round(expected_time, 1)
+        
+        # 2. AFE Probability
+        # Higher for better rigs, easier conditions
+        base_afe_prob = 70
+        
+        capability_bonus = (capability_factor - 1) * 20
+        experience_bonus = (features['contract_success_rate'] - 7) * 3
+        climate_bonus = (features['climate_score'] - 7) * 2
+        complexity_penalty = (features['region_complexity'] - 5) * 2
+        
+        afe_probability = (base_afe_prob + 
+                          capability_bonus + 
+                          experience_bonus + 
+                          climate_bonus - 
+                          complexity_penalty)
+        
+        predictions['afe_probability'] = max(30, min(95, afe_probability))
+        
+        # 3. Expected NPT %
+        base_npt = 12
+        
+        complexity_npt = (features['region_complexity'] - 5) * 1.5
+        climate_npt = (10 - features['climate_score']) * 1.2
+        formation_npt = (features['formation_hardness'] - 5) * 0.8
+        
+        # Better rigs have lower NPT
+        capability_npt_reduction = (capability_factor - 1) * 3
+        experience_npt_reduction = (features['contract_success_rate'] - 7) * 0.8
+        
+        expected_npt = (base_npt + 
+                       complexity_npt + 
+                       climate_npt + 
+                       formation_npt - 
+                       capability_npt_reduction - 
+                       experience_npt_reduction)
+        
+        predictions['expected_npt_percent'] = max(3, min(30, expected_npt))
+        
+        # 4. Risk Score (0-100, lower is better)
+        risk_components = {
+            'complexity_risk': features['region_complexity'] * 5,
+            'climate_risk': (10 - features['climate_score']) * 5,
+            'formation_risk': features['formation_hardness'] * 4,
+            'capability_risk': max(0, (5 - capability_factor) * 10),
+            'experience_risk': max(0, (7 - features['contract_success_rate']) * 5)
+        }
+        
+        total_risk = sum(risk_components.values())
+        predictions['risk_score'] = min(100, total_risk)
+        predictions['risk_breakdown'] = risk_components
+        
+        # 5. Recommended Dayrate
+        # Base on market conditions and rig capability
+        market_base = 200  # $200k base
+        
+        complexity_premium = features['region_complexity'] * 15
+        formation_premium = features['formation_hardness'] * 10
+        climate_adjustment = (10 - features['climate_score']) * 8
+        
+        # Risk premium
+        risk_premium = (predictions['risk_score'] / 100) * 50
+        
+        recommended_dayrate_low = market_base + complexity_premium + formation_premium
+        recommended_dayrate_high = recommended_dayrate_low + climate_adjustment + risk_premium
+        
+        predictions['recommended_dayrate_range'] = {
+            'low': round(recommended_dayrate_low, 0),
+            'high': round(recommended_dayrate_high, 0),
+            'optimal': round((recommended_dayrate_low + recommended_dayrate_high) / 2, 0)
+        }
+        
+        # 6. Confidence Score
+        # Based on data quality and consistency
+        data_quality_score = 85  # Base confidence
+        
+        # Reduce confidence if data is sparse
+        if len(rig_data) < 3:
+            data_quality_score -= 15
+        elif len(rig_data) < 5:
+            data_quality_score -= 8
+        
+        # Reduce confidence for extreme conditions
+        if features['region_complexity'] >= 9:
+            data_quality_score -= 10
+        
+        predictions['confidence_percent'] = max(50, min(95, data_quality_score))
+        
+        # 7. Rig-Well Match Score (0-100)
+        match_factors = {
+            'capability_match': self._calculate_capability_match(features),
+            'experience_match': features['contract_success_rate'] * 10,
+            'climate_compatibility': features['climate_score'] * 10,
+            'complexity_alignment': max(0, 100 - (features['region_complexity'] - 5) * 10),
+            'risk_alignment': 100 - predictions['risk_score']
+        }
+        
+        match_score = np.mean([v for v in match_factors.values()])
+        predictions['match_score'] = round(match_score, 1)
+        predictions['match_breakdown'] = match_factors
+        
+        return predictions
+    
+    def _calculate_capability_match(self, features):
+        """Calculate how well rig capability matches well requirements"""
+        # Ideal dayrate for the well complexity
+        ideal_dayrate = 150 + (features['region_complexity'] * 20)
+        
+        # How close is actual to ideal?
+        difference = abs(features['avg_dayrate'] - ideal_dayrate)
+        
+        # Convert to 0-100 score (lower difference = better match)
+        match_score = max(0, 100 - (difference / ideal_dayrate * 100))
+        
+        return match_score
+    
+    def generate_match_report(self, rig_data, well_params=None):
+        """Generate comprehensive match report"""
+        predictions = self.predict_well_execution(rig_data, well_params)
+        
+        report = {
+            'predictions': predictions,
+            'recommendation': self._generate_recommendation(predictions),
+            'key_considerations': self._generate_considerations(predictions),
+            'risk_mitigation': self._generate_risk_mitigation(predictions)
+        }
+        
+        return report
+    
+    def _generate_recommendation(self, predictions):
+        """Generate hiring recommendation"""
+        match_score = predictions['match_score']
+        risk_score = predictions['risk_score']
+        afe_prob = predictions['afe_probability']
+        
+        if match_score >= 80 and risk_score < 40 and afe_prob >= 75:
+            return {
+                'decision': 'HIGHLY RECOMMENDED',
+                'confidence': 'HIGH',
+                'rationale': 'Excellent match with low risk and high probability of success'
+            }
+        elif match_score >= 65 and risk_score < 60 and afe_prob >= 60:
+            return {
+                'decision': 'RECOMMENDED',
+                'confidence': 'MEDIUM',
+                'rationale': 'Good match with acceptable risk profile'
+            }
+        elif match_score >= 50:
+            return {
+                'decision': 'CONDITIONAL',
+                'confidence': 'MEDIUM',
+                'rationale': 'Acceptable match but requires risk mitigation measures'
+            }
+        else:
+            return {
+                'decision': 'NOT RECOMMENDED',
+                'confidence': 'HIGH',
+                'rationale': 'Poor match with elevated risk; consider alternative rigs'
+            }
+    
+    def _generate_considerations(self, predictions):
+        """Generate key considerations"""
+        considerations = []
+        
+        if predictions['risk_score'] > 60:
+            considerations.append("HIGH RISK: Implement enhanced monitoring and contingency planning")
+        
+        if predictions['expected_npt_percent'] > 15:
+            considerations.append(f"ELEVATED NPT: Expected {predictions['expected_npt_percent']:.1f}% NPT - factor into schedule")
+        
+        if predictions['afe_probability'] < 70:
+            considerations.append(f"AFE RISK: Only {predictions['afe_probability']:.1f}% probability of meeting AFE - add contingency budget")
+        
+        if predictions['expected_time_days'] > 60:
+            considerations.append(f"EXTENDED DURATION: Estimated {predictions['expected_time_days']:.1f} days - plan for long-term logistics")
+        
+        return considerations
+    
+    def _generate_risk_mitigation(self, predictions):
+        """Generate risk mitigation strategies"""
+        mitigations = []
+        
+        risk_breakdown = predictions.get('risk_breakdown', {})
+        
+        if risk_breakdown.get('complexity_risk', 0) > 30:
+            mitigations.append("Deploy experienced crew with similar complexity background")
+            mitigations.append("Conduct pre-spud technical review and hazard analysis")
+        
+        if risk_breakdown.get('climate_risk', 0) > 25:
+            mitigations.append("Implement weather monitoring and seasonal planning")
+            mitigations.append("Include weather delay clauses in contract")
+        
+        if risk_breakdown.get('formation_risk', 0) > 20:
+            mitigations.append("Prepare specialized drilling fluids and bit programs")
+            mitigations.append("Have backup equipment readily available")
+        
+        if predictions['expected_npt_percent'] > 15:
+            mitigations.append("Establish NPT reduction task force")
+            mitigations.append("Implement real-time performance monitoring")
+        
+        return mitigations
+
+class MonteCarloScenarioSimulator:
+    """
+    Monte Carlo Simulation for "What-If" Scenarios
+    Simulates rig performance in different basins/conditions
+    """
+    
+    def __init__(self, num_simulations=1000):
+        self.num_simulations = num_simulations
+        self.random_state = np.random.RandomState(42)  # For reproducibility
+    
+    def simulate_basin_transfer(self, rig_data, target_basin_params):
+        """
+        Simulate rig performance if moved to different basin
+        
+        Parameters:
+        - rig_data: Historical rig data
+        - target_basin_params: Dictionary with target basin characteristics
+            {
+                'basin_name': 'North Sea',
+                'climate_severity': 7,  # 1-10, higher = harsher
+                'geology_difficulty': 6,  # 1-10
+                'water_depth': 500,  # meters
+                'typical_dayrate': 280  # $k
+            }
+        
+        Returns:
+        - simulation_results: Dictionary with statistical outcomes
+        """
+        # Extract current rig performance baseline
+        baseline = self._extract_baseline_performance(rig_data)
+        
+        # Run Monte Carlo simulations
+        npt_results = []
+        duration_results = []
+        cost_results = []
+        risk_results = []
+        
+        for i in range(self.num_simulations):
+            # Simulate NPT
+            npt = self._simulate_npt(
+                baseline['avg_npt'],
+                target_basin_params['climate_severity'],
+                target_basin_params['geology_difficulty']
+            )
+            npt_results.append(npt)
+            
+            # Simulate well duration
+            duration = self._simulate_duration(
+                baseline['avg_duration'],
+                target_basin_params['climate_severity'],
+                target_basin_params['geology_difficulty'],
+                target_basin_params['water_depth']
+            )
+            duration_results.append(duration)
+            
+            # Simulate cost
+            cost = self._simulate_cost(
+                duration,
+                target_basin_params['typical_dayrate'],
+                npt
+            )
+            cost_results.append(cost)
+            
+            # Simulate risk
+            risk = self._simulate_risk(
+                npt,
+                duration,
+                target_basin_params
+            )
+            risk_results.append(risk)
+        
+        # Compile results
+        results = {
+            'basin_name': target_basin_params['basin_name'],
+            'npt': {
+                'mean': np.mean(npt_results),
+                'std': np.std(npt_results),
+                'p10': np.percentile(npt_results, 10),
+                'p50': np.percentile(npt_results, 50),
+                'p90': np.percentile(npt_results, 90),
+                'distribution': npt_results
+            },
+            'duration': {
+                'mean': np.mean(duration_results),
+                'std': np.std(duration_results),
+                'p10': np.percentile(duration_results, 10),
+                'p50': np.percentile(duration_results, 50),
+                'p90': np.percentile(duration_results, 90),
+                'distribution': duration_results
+            },
+            'cost': {
+                'mean': np.mean(cost_results),
+                'std': np.std(cost_results),
+                'p10': np.percentile(cost_results, 10),
+                'p50': np.percentile(cost_results, 50),
+                'p90': np.percentile(cost_results, 90),
+                'distribution': cost_results
+            },
+            'risk': {
+                'mean': np.mean(risk_results),
+                'std': np.std(risk_results),
+                'p10': np.percentile(risk_results, 10),
+                'p50': np.percentile(risk_results, 50),
+                'p90': np.percentile(risk_results, 90),
+                'distribution': risk_results
+            },
+            'num_simulations': self.num_simulations,
+            'recommendation': self._generate_scenario_recommendation(
+                np.mean(npt_results),
+                np.mean(duration_results),
+                np.mean(cost_results),
+                np.mean(risk_results)
+            )
+        }
+        
+        return results
+    
+    def _extract_baseline_performance(self, rig_data):
+        """Extract baseline performance metrics from historical data"""
+        baseline = {
+            'avg_npt': 12,  # Default 12% NPT
+            'avg_duration': 40,  # Default 40 days
+            'avg_dayrate': 200  # Default $200k
+        }
+        
+        if 'Contract Length' in rig_data.columns:
+            baseline['avg_duration'] = rig_data['Contract Length'].mean() / 3  # Assuming 3 wells per contract
+        
+        if 'Dayrate ($k)' in rig_data.columns:
+            baseline['avg_dayrate'] = rig_data['Dayrate ($k)'].mean()
+        
+        return baseline
+    
+    def _simulate_npt(self, baseline_npt, climate_severity, geology_difficulty):
+        """Simulate NPT with variability"""
+        # Base NPT
+        base = baseline_npt
+        
+        # Climate impact (stochastic)
+        climate_impact = self.random_state.normal(
+            climate_severity * 0.8,
+            climate_severity * 0.3
+        )
+        
+        # Geology impact (stochastic)
+        geology_impact = self.random_state.normal(
+            geology_difficulty * 0.6,
+            geology_difficulty * 0.2
+        )
+        
+        # Random variability
+        random_factor = self.random_state.normal(1.0, 0.15)
+        
+        # Calculate NPT
+        npt = (base + climate_impact + geology_impact) * random_factor
+        
+        # Ensure realistic bounds
+        return max(2, min(40, npt))
+    
+    def _simulate_duration(self, baseline_duration, climate_severity, geology_difficulty, water_depth):
+        """Simulate well duration"""
+        # Base duration
+        base = baseline_duration
+        
+        # Climate delays
+        climate_delay = self.random_state.normal(
+            climate_severity * 1.5,
+            climate_severity * 0.5
+        )
+        
+        # Geology complexity time
+        geology_time = self.random_state.normal(
+            geology_difficulty * 1.2,
+            geology_difficulty * 0.4
+        )
+        
+        # Water depth impact
+        depth_factor = 1 + (water_depth / 2000)  # Deeper = longer
+        
+        # Random variability
+        random_factor = self.random_state.normal(1.0, 0.2)
+        
+        # Calculate duration
+        duration = (base + climate_delay + geology_time) * depth_factor * random_factor
+        
+        return max(15, min(120, duration))
+    
+    def _simulate_cost(self, duration, dayrate, npt_percent):
+        """Simulate total cost"""
+        # Operating days
+        operating_days = duration
+        
+        # NPT adds cost
+        npt_cost_multiplier = 1 + (npt_percent / 100) * 0.5
+        
+        # Total cost
+        total_cost = operating_days * dayrate * npt_cost_multiplier
+        
+        # Add random variability (±10%)
+        random_factor = self.random_state.normal(1.0, 0.1)
+        
+        return total_cost * random_factor
+    
+    def _simulate_risk(self, npt, duration, basin_params):
+        """Simulate overall risk score"""
+        # Risk components
+        npt_risk = npt * 1.5
+        duration_risk = (duration - 30) * 0.8 if duration > 30 else 0
+        climate_risk = basin_params['climate_severity'] * 4
+        geology_risk = basin_params['geology_difficulty'] * 3.5
+        
+        # Total risk with stochastic element
+        total_risk = (npt_risk + duration_risk + climate_risk + geology_risk)
+        random_factor = self.random_state.normal(1.0, 0.15)
+        
+        return max(0, min(100, total_risk * random_factor))
+    
+    def _generate_scenario_recommendation(self, avg_npt, avg_duration, avg_cost, avg_risk):
+        """Generate recommendation based on simulation results"""
+        if avg_risk < 30 and avg_npt < 12:
+            return {
+                'decision': 'FAVORABLE',
+                'summary': 'Simulation shows favorable outcomes with acceptable risk'
+            }
+        elif avg_risk < 50 and avg_npt < 18:
+            return {
+                'decision': 'MODERATE',
+                'summary': 'Moderate outcomes expected; proceed with standard precautions'
+            }
+        elif avg_risk < 70:
+            return {
+                'decision': 'ELEVATED RISK',
+                'summary': 'Higher than normal risk; implement enhanced risk management'
+            }
+        else:
+            return {
+                'decision': 'HIGH RISK',
+                'summary': 'Simulation indicates high risk; consider alternatives or wait for better conditions'
+            }
+    
+    def compare_multiple_basins(self, rig_data, basin_scenarios):
+        """
+        Compare rig performance across multiple basin scenarios
+        
+        Parameters:
+        - rig_data: Historical rig data
+        - basin_scenarios: List of basin parameter dictionaries
+        
+        Returns:
+        - comparison_results: Dictionary comparing all scenarios
+        """
+        all_results = {}
+        
+        for basin_params in basin_scenarios:
+            basin_name = basin_params['basin_name']
+            results = self.simulate_basin_transfer(rig_data, basin_params)
+            all_results[basin_name] = results
+        
+        # Rank basins
+        rankings = self._rank_basins(all_results)
+        
+        return {
+            'individual_results': all_results,
+            'rankings': rankings,
+            'best_option': rankings[0],
+            'worst_option': rankings[-1]
+        }
+    
+    def _rank_basins(self, all_results):
+        """Rank basins by overall attractiveness"""
+        rankings = []
+        
+        for basin_name, results in all_results.items():
+            # Composite score (lower is better)
+            score = (
+                results['npt']['mean'] * 2 +
+                results['risk']['mean'] +
+                (results['cost']['mean'] / 1000)  # Normalize cost
+            )
+            
+            rankings.append({
+                'basin': basin_name,
+                'score': score,
+                'npt': results['npt']['mean'],
+                'duration': results['duration']['mean'],
+                'cost': results['cost']['mean'],
+                'risk': results['risk']['mean']
+            })
+        
+        # Sort by score (lower is better)
+        rankings.sort(key=lambda x: x['score'])
+        
+        return rankings
+
+class ContractorPerformanceAnalyzer:
+    """
+    Analyze contractor performance consistency
+    Separates good contractors from lucky ones using statistical analysis
+    """
+    
+    def __init__(self):
+        self.consistency_weights = {
+            'rop_variance': 0.25,
+            'npt_variance': 0.25,
+            'schedule_variance': 0.20,
+            'delivery_reliability': 0.20,
+            'crew_stability': 0.10
+        }
+    
+    def analyze_contractor_consistency(self, contractor_data):
+        """Comprehensive contractor consistency analysis"""
+        if contractor_data.empty or len(contractor_data) < 2:
+            return {
+                'overall_consistency': 50,
+                'grade': 'Insufficient Data',
+                'note': 'Need at least 2 contracts for consistency analysis'
+            }
+        
+        metrics = {}
+        metrics['rop_consistency'] = self._analyze_rop_variance(contractor_data)
+        metrics['npt_consistency'] = self._analyze_npt_variance(contractor_data)
+        metrics['schedule_consistency'] = self._analyze_schedule_variance(contractor_data)
+        metrics['delivery_reliability'] = self._analyze_delivery_reliability(contractor_data)
+        metrics['crew_stability'] = self._analyze_crew_stability(contractor_data)
+        
+        # Calculate weighted overall score
+        weights = [0.25, 0.25, 0.20, 0.20, 0.10]
+        scores = [
+            metrics['rop_consistency'],
+            metrics['npt_consistency'],
+            metrics['schedule_consistency'],
+            metrics['delivery_reliability'],
+            metrics['crew_stability']
+        ]
+        overall = sum(s * w for s, w in zip(scores, weights))
+        
+        sample_size_factor = min(1.0, len(contractor_data) / 10)
+        confidence_adjusted_score = overall * (0.7 + 0.3 * sample_size_factor)
+        
+        metrics['overall_consistency'] = confidence_adjusted_score
+        metrics['consistency_grade'] = self._get_consistency_grade(confidence_adjusted_score)
+        metrics['sample_size'] = len(contractor_data)
+        metrics['confidence_level'] = sample_size_factor * 100
+        metrics['classification'] = self._classify_contractor(metrics)
+        metrics['trend'] = self._analyze_performance_trend(contractor_data)
+        metrics['red_flags'] = self._identify_red_flags(contractor_data, metrics)
+        
+        return metrics
+    
+    def _analyze_rop_variance(self, data):
+        """Analyze ROP consistency"""
+        if 'ROP' in data.columns:
+            rop_values = data['ROP'].dropna()
+            if len(rop_values) < 2:
+                return 70
+            
+            mean_rop = rop_values.mean()
+            std_rop = rop_values.std()
+            cv = (std_rop / mean_rop) * 100 if mean_rop > 0 else 50
+            
+            if cv < 10:
+                return 95
+            elif cv < 20:
+                return 85
+            elif cv < 30:
+                return 70
+            elif cv < 40:
+                return 55
+            else:
+                return 40
+        
+        if 'Contract Length' in data.columns:
+            lengths = data['Contract Length'].dropna()
+            if len(lengths) >= 2:
+                mean_length = lengths.mean()
+                std_length = lengths.std()
+                cv = (std_length / mean_length) * 100 if mean_length > 0 else 50
+                consistency_score = max(40, 100 - cv)
+                return min(100, consistency_score)
+        
+        return 70
+    
+    def _analyze_npt_variance(self, data):
+        """Analyze NPT consistency"""
+        npt_col = None
+        if 'NPT %' in data.columns:
+            npt_col = 'NPT %'
+        elif 'NPT_Percent' in data.columns:
+            npt_col = 'NPT_Percent'
+        
+        if npt_col:
+            npt_values = data[npt_col].dropna()
+            if len(npt_values) < 2:
+                return 70
+            
+            mean_npt = npt_values.mean()
+            std_npt = npt_values.std()
+            
+            if std_npt < 3:
+                variance_score = 95
+            elif std_npt < 5:
+                variance_score = 85
+            elif std_npt < 8:
+                variance_score = 70
+            elif std_npt < 12:
+                variance_score = 55
+            else:
+                variance_score = 40
+            
+            if mean_npt > 20:
+                variance_score *= 0.8
+            elif mean_npt > 15:
+                variance_score *= 0.9
+            
+            return variance_score
+        
+        return 70
+    
+    def _analyze_schedule_variance(self, data):
+        """Analyze schedule adherence variance"""
+        if 'Contract Length' not in data.columns:
+            return 70
+        
+        lengths = data['Contract Length'].dropna()
+        if len(lengths) < 2:
+            return 70
+        
+        mean_length = lengths.mean()
+        std_length = lengths.std()
+        cv = (std_length / mean_length) * 100 if mean_length > 0 else 50
+        
+        if cv < 15:
+            return 90
+        elif cv < 25:
+            return 75
+        elif cv < 35:
+            return 60
+        elif cv < 50:
+            return 45
+        else:
+            return 30
+    
+    def _analyze_delivery_reliability(self, data):
+        """Analyze delivery reliability index"""
+        if 'Status' in data.columns:
+            status_col = data['Status'].dropna()
+            if not status_col.empty:
+                status_lower = status_col.str.lower()
+                successful = status_lower.str.contains(
+                    'complete|successful|finished|active|operating',
+                    case=False,
+                    na=False
+                ).sum()
+                failed = status_lower.str.contains(
+                    'terminated|cancelled|suspended|failed',
+                    case=False,
+                    na=False
+                ).sum()
+                
+                total = len(status_col)
+                if total > 0:
+                    success_rate = (successful / total) * 100
+                    failure_penalty = (failed / total) * 20
+                    reliability = success_rate - failure_penalty
+                    return max(0, min(100, reliability))
+        
+        return 75
+    
+    def _analyze_crew_stability(self, data):
+        """Analyze crew turnover impact"""
+        if 'Contract Start Date' not in data.columns or len(data) < 3:
+            return 70
+        
+        sorted_data = data.sort_values('Contract Start Date')
+        start_dates = pd.to_datetime(sorted_data['Contract Start Date'], errors='coerce').dropna()
+        
+        if len(start_dates) < 2:
+            return 70
+        
+        gaps = [(start_dates.iloc[i] - start_dates.iloc[i-1]).days for i in range(1, len(start_dates))]
+        avg_gap = np.mean(gaps)
+        
+        if avg_gap < 30:
+            return 95
+        elif avg_gap < 90:
+            return 85
+        elif avg_gap < 180:
+            return 70
+        elif avg_gap < 365:
+            return 55
+        else:
+            return 40
+    
+    def _get_consistency_grade(self, score):
+        """Get consistency grade"""
+        if score >= 90:
+            return 'A+ (Highly Consistent)'
+        elif score >= 80:
+            return 'A (Very Consistent)'
+        elif score >= 70:
+            return 'B (Consistent)'
+        elif score >= 60:
+            return 'C (Moderately Consistent)'
+        elif score >= 50:
+            return 'D (Inconsistent)'
+        else:
+            return 'F (Highly Inconsistent)'
+    
+    def _classify_contractor(self, metrics):
+        """Classify contractor based on performance"""
+        consistency = metrics['overall_consistency']
+        delivery = metrics['delivery_reliability']
+        
+        if consistency >= 80 and delivery >= 85:
+            return {'type': 'ELITE PERFORMER', 'description': 'Consistently delivers excellent results', 'color': 'green'}
+        elif consistency >= 70 and delivery >= 75:
+            return {'type': 'RELIABLE PERFORMER', 'description': 'Dependable with good track record', 'color': 'blue'}
+        elif consistency >= 60:
+            return {'type': 'AVERAGE PERFORMER', 'description': 'Acceptable but room for improvement', 'color': 'orange'}
+        elif consistency < 50 and delivery >= 75:
+            return {'type': 'LUCKY PERFORMER', 'description': 'Good results but high variance', 'color': 'yellow'}
+        else:
+            return {'type': 'INCONSISTENT PERFORMER', 'description': 'High variability and reliability concerns', 'color': 'red'}
+    
+    def _analyze_performance_trend(self, data):
+        """Analyze performance trend"""
+        if len(data) < 3:
+            return {'direction': 'INSUFFICIENT DATA', 'confidence': 0}
+        
+        if 'Contract Start Date' in data.columns:
+            sorted_data = data.sort_values('Contract Start Date')
+        else:
+            sorted_data = data
+        
+        if 'Contract Length' in sorted_data.columns:
+            values = sorted_data['Contract Length'].dropna().values
+            if len(values) < 3:
+                return {'direction': 'INSUFFICIENT DATA', 'confidence': 0}
+            
+            x = np.arange(len(values))
+            slope, intercept = np.polyfit(x, values, 1)
+            y_pred = slope * x + intercept
+            ss_res = np.sum((values - y_pred) ** 2)
+            ss_tot = np.sum((values - np.mean(values)) ** 2)
+            r_squared = 1 - (ss_res / ss_tot) if ss_tot > 0 else 0
+            
+            if abs(slope) < 1:
+                direction = 'STABLE'
+            elif slope < -2:
+                direction = 'IMPROVING'
+            elif slope > 2:
+                direction = 'DECLINING'
+            elif slope < 0:
+                direction = 'SLIGHTLY IMPROVING'
+            else:
+                direction = 'SLIGHTLY DECLINING'
+            
+            return {'direction': direction, 'confidence': r_squared * 100, 'slope': slope}
+        
+        return {'direction': 'UNKNOWN', 'confidence': 0}
+    
+    def _identify_red_flags(self, data, metrics):
+        """Identify red flags in contractor performance"""
+        red_flags = []
+        
+        if metrics['overall_consistency'] < 50:
+            red_flags.append({
+                'severity': 'HIGH',
+                'flag': 'High Performance Variability',
+                'detail': f"Consistency score of {metrics['overall_consistency']:.1f}%"
+            })
+        
+        if metrics['delivery_reliability'] < 60:
+            red_flags.append({
+                'severity': 'HIGH',
+                'flag': 'Poor Delivery Track Record',
+                'detail': f"Only {metrics['delivery_reliability']:.1f}% delivery reliability"
+            })
+        
+        if metrics['trend']['direction'] in ['DECLINING', 'SLIGHTLY DECLINING']:
+            if metrics['trend']['confidence'] > 50:
+                red_flags.append({
+                    'severity': 'MEDIUM',
+                    'flag': 'Declining Performance Trend',
+                    'detail': f"Confidence: {metrics['trend']['confidence']:.1f}%"
+                })
+        
+        if metrics['crew_stability'] < 50:
+            red_flags.append({
+                'severity': 'MEDIUM',
+                'flag': 'Crew Instability',
+                'detail': f"Stability score of {metrics['crew_stability']:.1f}%"
+            })
+        
+        if metrics['sample_size'] < 5:
+            red_flags.append({
+                'severity': 'LOW',
+                'flag': 'Limited Track Record',
+                'detail': f"Only {metrics['sample_size']} contracts analyzed"
+            })
+        
+        return red_flags
+    
+    def compare_contractors(self, contractors_data_dict):
+        """Compare multiple contractors"""
+        all_analyses = {}
+        for contractor_name, contractor_data in contractors_data_dict.items():
+            analysis = self.analyze_contractor_consistency(contractor_data)
+            all_analyses[contractor_name] = analysis
+        
+        rankings = []
+        for contractor, analysis in all_analyses.items():
+            rankings.append({
+                'contractor': contractor,
+                'consistency_score': analysis['overall_consistency'],
+                'reliability': analysis['delivery_reliability'],
+                'classification': analysis['classification']['type'],
+                'grade': analysis['consistency_grade'],
+                'red_flags_count': len(analysis.get('red_flags', []))
+            })
+        
+        rankings.sort(key=lambda x: x['consistency_score'], reverse=True)
+        
+        return {
+            'detailed_analyses': all_analyses,
+            'rankings': rankings,
+            'top_performer': rankings[0] if rankings else None,
+            'bottom_performer': rankings[-1] if rankings else None
+        }
+
+class LearningCurveAnalyzer:
+    """
+    Analyze and visualize rig learning curves
+    Shows improvement over time (or lack thereof)
+    """
+    
+    def __init__(self):
+        pass
+    
+    def calculate_learning_curve(self, rig_data):
+        """Calculate learning curve parameters using power law"""
+        if len(rig_data) < 3:
+            return {
+                'status': 'INSUFFICIENT_DATA',
+                'message': 'Need at least 3 data points for learning curve analysis'
+            }
+        
+        if 'Contract Start Date' in rig_data.columns:
+            sorted_data = rig_data.sort_values('Contract Start Date').reset_index(drop=True)
+        else:
+            sorted_data = rig_data.reset_index(drop=True)
+        
+        if 'Contract Length' not in sorted_data.columns:
+            return {
+                'status': 'NO_TIME_DATA',
+                'message': 'No time-based data available for learning curve'
+            }
+        
+        times = sorted_data['Contract Length'].dropna().values
+        if len(times) < 3:
+            return {
+                'status': 'INSUFFICIENT_DATA',
+                'message': 'Need at least 3 time measurements'
+            }
+        
+        n = np.arange(1, len(times) + 1)
+        log_times = np.log(times)
+        log_n = np.log(n)
+        
+        slope, intercept = np.polyfit(log_n, log_times, 1)
+        k = -slope
+        T1 = np.exp(intercept)
+        
+        predicted_log_times = intercept + slope * log_n
+        ss_res = np.sum((log_times - predicted_log_times) ** 2)
+        ss_tot = np.sum((log_times - np.mean(log_times)) ** 2)
+        r_squared = 1 - (ss_res / ss_tot) if ss_tot > 0 else 0
+        
+        future_n = np.arange(1, len(times) + 6)
+        predicted_times = T1 * (future_n ** -k)
+        
+        if len(times) >= 5:
+            early_avg = np.mean(times[:3])
+            late_avg = np.mean(times[-3:])
+            improvement_percent = ((early_avg - late_avg) / early_avg * 100) if early_avg > 0 else 0
+        else:
+            improvement_percent = ((times[0] - times[-1]) / times[0] * 100) if times[0] > 0 else 0
+        
+        classification = self._classify_learning(k, r_squared, improvement_percent)
+        
+        return {
+            'status': 'SUCCESS',
+            'learning_rate_k': k,
+            'initial_time_T1': T1,
+            'r_squared': r_squared,
+            'actual_times': times.tolist(),
+            'predicted_times': predicted_times.tolist(),
+            'improvement_percent': improvement_percent,
+            'classification': classification,
+            'n_contracts': len(times),
+            'current_efficiency': times[-1] if len(times) > 0 else 0,
+            'projected_efficiency': predicted_times[-1] if len(predicted_times) > 0 else 0
+        }
+    
+    def _classify_learning(self, k, r_squared, improvement_percent):
+        """Classify learning performance"""
+        if k > 0.3 and r_squared > 0.7:
+            return {
+                'category': 'FAST LEARNER',
+                'description': f'Strong learning curve with {improvement_percent:.1f}% improvement',
+                'color': 'green',
+                'recommendation': 'Excellent learning capability - ideal for complex wells'
+            }
+        elif k > 0.15 and r_squared > 0.5:
+            return {
+                'category': 'STEADY LEARNER',
+                'description': f'Consistent improvement at {improvement_percent:.1f}%',
+                'color': 'blue',
+                'recommendation': 'Good learning pattern - suitable for repeat operations'
+            }
+        elif k > 0:
+            return {
+                'category': 'SLOW LEARNER',
+                'description': f'Modest improvement of {improvement_percent:.1f}%',
+                'color': 'orange',
+                'recommendation': 'Limited learning - best for standard operations'
+            }
+        elif k < 0 and improvement_percent < 0:
+            return {
+                'category': 'DECLINING',
+                'description': f'Performance worsening by {abs(improvement_percent):.1f}%',
+                'color': 'red',
+                'recommendation': 'WARNING: Performance degrading over time'
+            }
+        else:
+            return {
+                'category': 'INCONSISTENT',
+                'description': 'No clear learning pattern',
+                'color': 'gray',
+                'recommendation': 'Variable performance - difficult to predict'
+            }
+    
+    def generate_learning_curve_report(self, rig_data, rig_name):
+        """Generate comprehensive learning curve report"""
+        analysis = self.calculate_learning_curve(rig_data)
+        
+        if analysis['status'] != 'SUCCESS':
+            return analysis
+        
+        report = {
+            'rig_name': rig_name,
+            'analysis': analysis,
+            'insights': self._generate_learning_insights(analysis),
+            'recommendations': self._generate_learning_recommendations(analysis)
+        }
+        
+        return report
+    
+    def _generate_learning_insights(self, analysis):
+        """Generate insights from learning curve analysis"""
+        insights = []
+        k = analysis['learning_rate_k']
+        improvement = analysis['improvement_percent']
+        
+        if k > 0.3:
+            insights.append(f"🚀 Exceptional learning rate of {k:.3f}")
+        elif k > 0.15:
+            insights.append(f"✅ Good learning rate of {k:.3f}")
+        elif k > 0:
+            insights.append(f"⚠️ Modest learning rate of {k:.3f}")
+        else:
+            insights.append(f"❌ Negative learning rate of {k:.3f}")
+        
+        if analysis['r_squared'] > 0.8:
+            insights.append(f"📊 High model fit (R² = {analysis['r_squared']:.3f})")
+        elif analysis['r_squared'] > 0.5:
+            insights.append(f"📊 Moderate model fit (R² = {analysis['r_squared']:.3f})")
+        else:
+            insights.append(f"📊 Low model fit (R² = {analysis['r_squared']:.3f})")
+        
+        if improvement > 30:
+            insights.append(f"💡 Outstanding {improvement:.1f}% improvement")
+        elif improvement > 15:
+            insights.append(f"💡 Strong {improvement:.1f}% improvement")
+        elif improvement > 0:
+            insights.append(f"💡 Modest {improvement:.1f}% improvement")
+        else:
+            insights.append(f"⚠️ Performance worsened by {abs(improvement):.1f}%")
+        
+        return insights
+    
+    def _generate_learning_recommendations(self, analysis):
+        """Generate recommendations based on learning curve"""
+        recommendations = []
+        classification = analysis['classification']
+        
+        if classification['category'] == 'FAST LEARNER':
+            recommendations.append("Deploy this rig for challenging or first-of-kind wells")
+            recommendations.append("Consider as primary choice for complex HPHT or deepwater wells")
+            recommendations.append("Use as benchmark for training other rigs")
+        
+        elif classification['category'] == 'STEADY LEARNER':
+            recommendations.append("Ideal for multi-well programs where learning compounds")
+            recommendations.append("Suitable for development drilling with similar profiles")
+            recommendations.append("Document lessons learned to accelerate improvements")
+        
+        elif classification['category'] == 'SLOW LEARNER':
+            recommendations.append("Best suited for standard, repetitive operations")
+            recommendations.append("Implement structured training program")
+            recommendations.append("Consider crew refresher training or upgrades")
+        
+        elif classification['category'] == 'DECLINING':
+            recommendations.append("URGENT: Investigate root causes of decline")
+            recommendations.append("Review crew changes, maintenance, and procedures")
+            recommendations.append("Consider performance improvement plan")
+        
+        else:
+            recommendations.append("Improve data collection and monitoring")
+            recommendations.append("Standardize operations to reduce variability")
+            recommendations.append("Implement consistent performance tracking")
+        
+        return recommendations
+
+class InvisibleLostTimeDetector:
+    """
+    AI-powered pattern mining to detect invisible lost time (ILT)
+    Identifies inefficiencies not captured in standard NPT reporting
+    """
+    
+    def __init__(self):
+        pass
+    
+    def detect_ilt(self, rig_data):
+        """Detect invisible lost time from available data"""
+        ilt_findings = []
+        total_ilt_days = 0
+        
+        if 'Contract Length' in rig_data.columns:
+            ilt_from_variance = self._detect_duration_variance_ilt(rig_data)
+            if ilt_from_variance:
+                ilt_findings.extend(ilt_from_variance['findings'])
+                total_ilt_days += ilt_from_variance['estimated_days']
+        
+        if 'Contract Start Date' in rig_data.columns and 'Contract End Date' in rig_data.columns:
+            ilt_from_gaps = self._detect_gap_pattern_ilt(rig_data)
+            if ilt_from_gaps:
+                ilt_findings.extend(ilt_from_gaps['findings'])
+                total_ilt_days += ilt_from_gaps['estimated_days']
+        
+        if 'Dayrate ($k)' in rig_data.columns and 'Contract Length' in rig_data.columns:
+            ilt_from_inefficiency = self._detect_efficiency_ilt(rig_data)
+            if ilt_from_inefficiency:
+                ilt_findings.extend(ilt_from_inefficiency['findings'])
+                total_ilt_days += ilt_from_inefficiency['estimated_days']
+        
+        ilt_from_patterns = self._estimate_pattern_based_ilt(rig_data)
+        if ilt_from_patterns:
+            ilt_findings.extend(ilt_from_patterns['findings'])
+            total_ilt_days += ilt_from_patterns['estimated_days']
+        
+        total_contract_days = rig_data['Contract Length'].sum() if 'Contract Length' in rig_data.columns else 0
+        ilt_percentage = (total_ilt_days / total_contract_days * 100) if total_contract_days > 0 else 0
+        
+        avg_dayrate = rig_data['Dayrate ($k)'].mean() if 'Dayrate ($k)' in rig_data.columns else 200
+        cost_impact = total_ilt_days * avg_dayrate
+        
+        return {
+            'total_ilt_days': total_ilt_days,
+            'ilt_percentage': ilt_percentage,
+            'cost_impact_$k': cost_impact,
+            'findings': ilt_findings,
+            'severity': self._classify_ilt_severity(ilt_percentage),
+            'recommendations': self._generate_ilt_recommendations(ilt_findings)
+        }
+    
+    def _detect_duration_variance_ilt(self, rig_data):
+        """Detect ILT from contract duration variance"""
+        lengths = rig_data['Contract Length'].dropna()
+        
+        if len(lengths) < 3:
+            return None
+        
+        mean_length = lengths.mean()
+        std_length = lengths.std()
+        cv = (std_length / mean_length) * 100 if mean_length > 0 else 0
+        
+        if cv > 25:
+            excess_days = std_length * 0.5
+            return {
+                'findings': [{
+                    'type': 'High Duration Variance',
+                    'severity': 'MEDIUM',
+                    'detail': f'Contract length CV of {cv:.1f}% suggests inconsistent performance',
+                    'recommendation': 'Standardize operations and investigate causes'
+                }],
+                'estimated_days': excess_days * len(lengths)
+            }
+        
+        return None
+    
+    def _detect_gap_pattern_ilt(self, rig_data):
+        """Detect ILT from gap patterns between contracts"""
+        sorted_data = rig_data.sort_values('Contract Start Date')
+        
+        starts = pd.to_datetime(sorted_data['Contract Start Date'], errors='coerce').dropna()
+        ends = pd.to_datetime(sorted_data['Contract End Date'], errors='coerce').dropna()
+        
+        if len(starts) < 2 or len(ends) < 2:
+            return None
+        
+        findings = []
+        estimated_days = 0
+        
+        for i in range(len(sorted_data) - 1):
+            if i < len(ends) and i+1 < len(starts):
+                if ends.iloc[i] > starts.iloc[i+1]:
+                    overlap_days = (ends.iloc[i] - starts.iloc[i+1]).days
+                    if overlap_days > 7:
+                        findings.append({
+                            'type': 'Contract Overlap Pattern',
+                            'severity': 'LOW',
+                            'detail': 'Overlapping contracts may indicate coordination inefficiencies',
+                            'recommendation': 'Review contract sequencing'
+                        })
+                        estimated_days += overlap_days * 0.1
+        
+        if findings:
+            return {'findings': findings, 'estimated_days': estimated_days}
+        
+        return None
+    
+    def _detect_efficiency_ilt(self, rig_data):
+        """Detect ILT from dayrate vs performance correlation"""
+        if len(rig_data) < 3:
+            return None
+        
+        dayrates = rig_data['Dayrate ($k)'].dropna()
+        lengths = rig_data['Contract Length'].dropna()
+        
+        if len(dayrates) < 3 or len(lengths) < 3:
+            return None
+        
+        correlation = np.corrcoef(dayrates, lengths)[0, 1] if len(dayrates) == len(lengths) else 0
+        
+        if correlation > 0.3:
+            findings = [{
+                'type': 'Dayrate-Performance Mismatch',
+                'severity': 'MEDIUM',
+                'detail': f'Higher dayrates correlate with longer times (r={correlation:.2f})',
+                'recommendation': 'Investigate if premium rates are justified'
+            }]
+            
+            avg_length = lengths.mean()
+            estimated_ilt = avg_length * 0.15
+            
+            return {
+                'findings': findings,
+                'estimated_days': estimated_ilt * len(lengths)
+            }
+        
+        return None
+    
+    def _estimate_pattern_based_ilt(self, rig_data):
+        """Estimate ILT based on industry patterns"""
+        findings = []
+        estimated_days = 0
+        
+        total_days = rig_data['Contract Length'].sum() if 'Contract Length' in rig_data.columns else 0
+        
+        if total_days == 0:
+            return None
+        
+        base_ilt_rate = 0.07
+        
+        if 'Current Location' in rig_data.columns:
+            location = str(rig_data['Current Location'].iloc[0]).lower() if len(rig_data) > 0 else ''
+            if any(term in location for term in ['deepwater', 'hpht', 'arctic']):
+                base_ilt_rate += 0.03
+                findings.append({
+                    'type': 'Complex Location ILT',
+                    'severity': 'MEDIUM',
+                    'detail': 'Complex environment likely increases invisible lost time',
+                    'recommendation': 'Implement detailed time breakdown analysis'
+                })
+        
+        contract_count = len(rig_data)
+        if contract_count > 5:
+            transition_ilt = contract_count * 2
+            estimated_days += transition_ilt
+            findings.append({
+                'type': 'Contract Transition ILT',
+                'severity': 'LOW',
+                'detail': f'Estimated {transition_ilt:.1f} days in {contract_count} transitions',
+                'recommendation': 'Optimize mobilization procedures'
+            })
+        
+        if 'Current Location' in rig_data.columns:
+            location = str(rig_data['Current Location'].iloc[0]).lower() if len(rig_data) > 0 else ''
+            if any(term in location for term in ['gulf of mexico', 'north sea', 'monsoon']):
+                base_ilt_rate += 0.02
+                findings.append({
+                    'type': 'Weather-Related ILT',
+                    'severity': 'MEDIUM',
+                    'detail': 'Climate conditions cause additional delays',
+                    'recommendation': 'Track weather standby separately'
+                })
+        
+        base_ilt_days = total_days * base_ilt_rate
+        estimated_days += base_ilt_days
+        
+        findings.append({
+            'type': 'Baseline ILT Estimate',
+            'severity': 'MEDIUM',
+            'detail': f'Industry-typical ILT at {base_ilt_rate*100:.1f}% of operating time',
+            'recommendation': 'Implement real-time performance monitoring'
+        })
+        
+        return {'findings': findings, 'estimated_days': estimated_days}
+    
+    def _classify_ilt_severity(self, ilt_percentage):
+        """Classify ILT severity"""
+        if ilt_percentage < 5:
+            return {'level': 'LOW', 'description': 'ILT within industry norms', 'color': 'green'}
+        elif ilt_percentage < 10:
+            return {'level': 'MODERATE', 'description': 'ILT at average levels', 'color': 'blue'}
+        elif ilt_percentage < 15:
+            return {'level': 'ELEVATED', 'description': 'ILT above average', 'color': 'orange'}
+        else:
+            return {'level': 'HIGH', 'description': 'ILT significantly above average', 'color': 'red'}
+    
+    def _generate_ilt_recommendations(self, findings):
+        """Generate recommendations to reduce ILT"""
+        recommendations = []
+        
+        finding_types = [f['type'] for f in findings]
+        
+        if any('Variance' in t for t in finding_types):
+            recommendations.append("📊 Implement detailed time-use analysis")
+        
+        if any('Dayrate' in t for t in finding_types):
+            recommendations.append("💰 Review whether premium rates deliver expected performance")
+        
+        if any('Weather' in t or 'Climate' in t for t in finding_types):
+            recommendations.append("🌤️ Enhance weather forecasting and planning")
+        
+        if any('Transition' in t for t in finding_types):
+            recommendations.append("🚚 Streamline mobilization/demobilization procedures")
+        
+        recommendations.extend([
+            "⏱️ Deploy real-time drilling data analytics",
+            "📈 Benchmark against best-in-class performers",
+            "👥 Implement crew training on time-efficient operations",
+            "🎯 Set specific KPIs for connection and trip times",
+            "🔄 Conduct daily operations reviews"
+        ])
+        
+        return recommendations
+
+class RigEfficiencyCalculator:
+    def calculate_contract_efficiency_metrics(self, rig_data):
+        """
+        Advanced Contract Efficiency Model
+        CER, UE, SAI combined
+        """
+        contract_metrics = {}
+        # 1. Cost Efficiency Ratio (CER)
+        # CER = AFE cost / (Contract Dayrate × Actual Days)
+        if 'Contract value ($m)' in rig_data.columns and 'Dayrate ($k)' in rig_data.columns:
+            contract_value = rig_data['Contract value ($m)'].sum() * 1000  # Convert to $k
+            dayrate = rig_data['Dayrate ($k)'].mean()
+            if 'Contract Length' in rig_data.columns:
+                actual_days = rig_data['Contract Length'].sum()
+            else:
+                # Estimate from dates
+                if 'Contract Start Date' in rig_data.columns and 'Contract End Date' in rig_data.columns:
+                    dates_df = rig_data[['Contract Start Date', 'Contract End Date']].dropna()
+                    if not dates_df.empty:
+                        actual_days = ((pd.to_datetime(dates_df['Contract End Date']) - 
+                                       pd.to_datetime(dates_df['Contract Start Date']))).dt.days.sum()
+                    else:
+                        actual_days = 365  # Default
+                else:
+                    actual_days = 365
+            expected_cost = dayrate * actual_days
+            if expected_cost > 0:
+                cer = (contract_value / expected_cost) * 100
+                contract_metrics['cost_efficiency_ratio'] = min(cer, 150)  # Cap at 150%
+            else:
+                contract_metrics['cost_efficiency_ratio'] = 100
+        else:
+            contract_metrics['cost_efficiency_ratio'] = 100
+        # 2. Utilization Efficiency (UE)
+        # UE = Operating days / Contract Length
+        contract_metrics['utilization_efficiency'] = self._calculate_contract_utilization(rig_data)
+        # 3. Schedule Adherence Index (SAI)
+        # SAI = (Contracted Days - Overrun Days) / Contracted Days
+        if 'Contract Days Remaining' in rig_data.columns and 'Contract Length' in rig_data.columns:
+            total_contracted = rig_data['Contract Length'].sum()
+            remaining = rig_data['Contract Days Remaining'].sum()
+            completed_on_time = max(0, total_contracted - remaining)
+            if total_contracted > 0:
+                sai = (completed_on_time / total_contracted) * 100
+                contract_metrics['schedule_adherence'] = sai
+            else:
+                contract_metrics['schedule_adherence'] = 100
+        else:
+            # Use contract stability as proxy
+            contract_metrics['schedule_adherence'] = self._calculate_contract_stability(rig_data)
+        # Combined Contract Efficiency
+        contract_efficiency = (
+            contract_metrics['cost_efficiency_ratio'] * 0.4 +
+            contract_metrics['utilization_efficiency'] * 0.3 +
+            contract_metrics['schedule_adherence'] * 0.3
+        )
+        contract_metrics['overall_contract_efficiency'] = min(contract_efficiency, 100)
+        return contract_metrics
+    def __init__(self):
         self.location_climate_map = self._initialize_climate_data()
         self.climate_ai = AdvancedClimateIntelligence()
+        self.benchmark_model = RegionalBenchmarkModel()
+        self.ml_predictor = RigWellMatchPredictor()
+        self.monte_carlo = MonteCarloScenarioSimulator(num_simulations=1000)
+        self.contractor_analyzer = ContractorPerformanceAnalyzer()
+        self.learning_analyzer = LearningCurveAnalyzer()
+        self.ilt_detector = InvisibleLostTimeDetector()
         self.efficiency_weights = {
             'contract_utilization': 0.25,
             'dayrate_efficiency': 0.20,
@@ -1030,6 +2730,174 @@ class RigEfficiencyCalculator:
             error_details = traceback.format_exc()
             print(f"Error calculating efficiency: {error_details}")
             raise Exception(f"Calculation error: {str(e)}\n\nDetails:\n{error_details}")
+
+    def calculate_composite_rei(self, rig_data):
+        """
+        Calculate Composite Rig Efficiency Index (REI)
+        REI = α*Technical + β*Time + γ*Cost + δ*Learning + ε*Complexity
+        """
+        rei_components = {}
+        
+        # 1. Technical Efficiency (ROP achieved vs expected)
+        if 'ROP Actual' in rig_data.columns and 'ROP Expected' in rig_data.columns:
+            rop_actual = rig_data['ROP Actual'].mean()
+            rop_expected = rig_data['ROP Expected'].mean()
+            rei_components['technical'] = (rop_actual / rop_expected * 100) if rop_expected > 0 else 50
+        else:
+            # Estimate from contract performance
+            rei_components['technical'] = self._estimate_technical_efficiency(rig_data)
+        
+        # 2. Time Efficiency (Planned days / Actual days)
+        if 'Planned Days' in rig_data.columns and 'Actual Days' in rig_data.columns:
+            planned = rig_data['Planned Days'].mean()
+            actual = rig_data['Actual Days'].mean()
+            rei_components['time'] = (planned / actual * 100) if actual > 0 else 50
+        else:
+            # Use contract length vs expected
+            rei_components['time'] = self._estimate_time_efficiency(rig_data)
+        
+        # 3. Cost Efficiency (Benchmark cost / Actual cost per meter)
+        if 'Cost Per Meter' in rig_data.columns:
+            benchmark_cost = self._get_benchmark_cost(rig_data)
+            actual_cost = rig_data['Cost Per Meter'].mean()
+            rei_components['cost'] = (benchmark_cost / actual_cost * 100) if actual_cost > 0 else 50
+        else:
+            # Use dayrate efficiency as proxy
+            rei_components['cost'] = self._calculate_dayrate_efficiency(rig_data)
+        
+        # 4. Learning Efficiency (improvement between wells)
+        rei_components['learning'] = self._calculate_learning_efficiency(rig_data)
+        
+        # 5. Complexity Adjustment (geology + climate + region)
+        rei_components['complexity'] = self._calculate_complexity_adjustment(rig_data)
+        
+        # Weights (must sum to 1.0)
+        weights = {
+            'technical': 0.30,
+            'time': 0.25,
+            'cost': 0.20,
+            'learning': 0.15,
+            'complexity': 0.10
+        }
+        
+        # Calculate weighted REI
+        rei_score = sum(rei_components[key] * weights[key] for key in weights.keys())
+        
+        return {
+            'rei_score': rei_score,
+            'components': rei_components,
+            'weights': weights,
+            'grade': self._get_rei_grade(rei_score)
+        }
+
+    def _estimate_technical_efficiency(self, rig_data):
+        """Estimate technical efficiency from available data"""
+        # Use contract performance and utilization as proxy
+        contract_perf = self._calculate_contract_performance(rig_data)
+        utilization = self._calculate_contract_utilization(rig_data)
+        return (contract_perf * 0.6 + utilization * 0.4)
+
+    def _estimate_time_efficiency(self, rig_data):
+        """Estimate time efficiency from contract data"""
+        # Use contract stability and utilization
+        stability = self._calculate_contract_stability(rig_data)
+        utilization = self._calculate_contract_utilization(rig_data)
+        return (stability * 0.5 + utilization * 0.5)
+
+    def _get_benchmark_cost(self, rig_data):
+        """Get benchmark cost for region/type"""
+        # Simple benchmark based on dayrate
+        if 'Dayrate ($k)' in rig_data.columns:
+            avg_dayrate = rig_data['Dayrate ($k)'].mean()
+            # Industry average: $250k dayrate ≈ $500/meter
+            benchmark = (avg_dayrate / 250) * 500
+            return benchmark
+        return 500  # Default benchmark
+
+    def _calculate_learning_efficiency(self, rig_data):
+        """
+        Calculate learning curve efficiency
+        Using power law: Tn = T1 * n^-k
+        Higher k = faster learning
+        """
+        if 'Contract Start Date' not in rig_data.columns:
+            return 70.0  # Default
+        
+        # Sort by date
+        sorted_data = rig_data.sort_values('Contract Start Date')
+        
+        if len(sorted_data) < 3:
+            return 70.0  # Need at least 3 contracts
+        
+        # Use contract length as proxy for time
+        if 'Contract Length' in sorted_data.columns:
+            times = sorted_data['Contract Length'].values
+            
+            # Calculate if times are decreasing (learning)
+            if len(times) >= 3:
+                # Check trend
+                first_third = np.mean(times[:len(times)//3])
+                last_third = np.mean(times[-len(times)//3:])
+                
+                if first_third > 0:
+                    improvement = ((first_third - last_third) / first_third) * 100
+                    # Convert to 0-100 scale
+                    learning_score = 50 + min(improvement * 2, 50)
+                    return max(0, min(100, learning_score))
+        
+        return 70.0
+
+    def _calculate_complexity_adjustment(self, rig_data):
+        """
+        Calculate complexity adjustment factor
+        Considers: geology + climate + region difficulty
+        """
+        complexity_score = 100  # Start at 100 (easiest)
+        
+        # 1. Climate complexity (we already have this)
+        climate_eff = self._calculate_enhanced_climate_efficiency(rig_data)
+        climate_penalty = (100 - climate_eff) * 0.3
+        
+        # 2. Location complexity
+        location_eff = self._calculate_location_efficiency(rig_data)
+        location_penalty = (100 - location_eff) * 0.3
+        
+        # 3. Water depth complexity (if available)
+        water_depth_penalty = 0
+        if 'Water Depth' in rig_data.columns:
+            avg_depth = rig_data['Water Depth'].mean()
+            if avg_depth > 1500:  # Ultra-deepwater
+                water_depth_penalty = 20
+            elif avg_depth > 500:  # Deepwater
+                water_depth_penalty = 10
+        
+        # 4. Region difficulty
+        region_penalty = 0
+        if 'Region' in rig_data.columns:
+            high_difficulty_regions = ['arctic', 'hpht', 'frontier', 'deepwater']
+            region_lower = str(rig_data['Region'].iloc[0]).lower() if len(rig_data) > 0 else ''
+            if any(term in region_lower for term in high_difficulty_regions):
+                region_penalty = 15
+        
+        # Calculate final complexity score
+        complexity_score = complexity_score - climate_penalty - location_penalty - water_depth_penalty - region_penalty
+        
+        return max(0, min(100, complexity_score))
+
+    def _get_rei_grade(self, score):
+        """Get REI grade"""
+        if score >= 90:
+            return 'A+ (World Class)'
+        elif score >= 85:
+            return 'A (Excellent)'
+        elif score >= 75:
+            return 'B (Good)'
+        elif score >= 65:
+            return 'C (Satisfactory)'
+        elif score >= 55:
+            return 'D (Below Average)'
+        else:
+            return 'F (Poor)'
     
     def _calculate_contract_utilization(self, rig_data):
         """
@@ -1426,6 +3294,44 @@ class RigEfficiencyCalculator:
             return 'D (Fair)'
         else:
             return 'F (Needs Improvement)'
+    
+    def calculate_benchmark_adjusted_performance(self, rig_data):
+        """Calculate performance adjusted for regional benchmarks"""
+        # Get actual metrics (fallback values used if not available in data)
+        actual_metrics = {
+            'rop': None,
+            'npt': None,
+            'days_per_well': None,
+            'cost_per_meter': None
+        }
+
+        # Try to extract from rig_data if columns exist
+        try:
+            if 'ROP Actual' in rig_data.columns:
+                actual_metrics['rop'] = rig_data['ROP Actual'].mean()
+            if 'NPT (%)' in rig_data.columns:
+                actual_metrics['npt'] = rig_data['NPT (%)'].mean()
+            if 'Days Per Well' in rig_data.columns:
+                actual_metrics['days_per_well'] = rig_data['Days Per Well'].mean()
+            if 'Cost Per Meter' in rig_data.columns:
+                actual_metrics['cost_per_meter'] = rig_data['Cost Per Meter'].mean()
+        except Exception:
+            pass
+
+        # Fill defaults if still None
+        if actual_metrics['rop'] is None:
+            actual_metrics['rop'] = 40
+        if actual_metrics['npt'] is None:
+            actual_metrics['npt'] = 12
+        if actual_metrics['days_per_well'] is None:
+            actual_metrics['days_per_well'] = 35
+        if actual_metrics['cost_per_meter'] is None:
+            actual_metrics['cost_per_meter'] = 750
+
+        # Get normalized performance
+        normalized = self.benchmark_model.calculate_normalized_performance(rig_data, actual_metrics)
+
+        return normalized
     def _generate_detailed_insights(self, rig_data, metrics):
         """Generate AI-powered insights based on analysis"""
         insights = []
@@ -2370,6 +4276,94 @@ class RigEfficiencyCalculator:
                     })
         
         return observations
+    
+    def generate_rig_well_match_analysis(self, rig_data, well_params=None):
+        """
+        Generate ML-powered rig-well match analysis
+        
+        Parameters:
+        - rig_data: Historical rig performance data
+        - well_params: Dictionary with well specifications (optional)
+            {
+                'depth': 4000,
+                'hardness': 7,  # 1-10 scale
+                'temperature': 180,
+                'pressure': 8000,
+                'location': 'Gulf of Mexico'
+            }
+        """
+        match_report = self.ml_predictor.generate_match_report(rig_data, well_params)
+        return match_report
+    
+    def run_scenario_simulation(self, rig_data, target_basin_params):
+        """
+        Run Monte Carlo scenario simulation
+        
+        Parameters:
+        - rig_data: Historical rig performance data
+        - target_basin_params: Dictionary with target basin characteristics
+            {
+                'basin_name': 'North Sea',
+                'climate_severity': 7,
+                'geology_difficulty': 6,
+                'water_depth': 500,
+                'typical_dayrate': 280
+            }
+        
+        Returns:
+        - simulation_results: Statistical outcomes from 1000 simulations
+        """
+        return self.monte_carlo.simulate_basin_transfer(rig_data, target_basin_params)
+
+    def compare_basin_scenarios(self, rig_data, basin_scenarios):
+        """
+        Compare multiple basin scenarios
+        
+        Parameters:
+        - rig_data: Historical rig performance data
+        - basin_scenarios: List of basin parameter dictionaries
+        
+        Returns:
+        - comparison_results: Ranked comparison of all scenarios
+        """
+        return self.monte_carlo.compare_multiple_basins(rig_data, basin_scenarios)
+    
+    def analyze_contractor_performance(self, contractor_name):
+        """Analyze specific contractor's performance consistency"""
+        if self.df is None:
+            return None
+        
+        if 'Contractor' not in self.df.columns:
+            return None
+        
+        contractor_data = self.df[self.df['Contractor'] == contractor_name]
+        
+        if contractor_data.empty:
+            return None
+        
+        return self.contractor_analyzer.analyze_contractor_consistency(contractor_data)
+
+    def compare_all_contractors(self):
+        """Compare all contractors in dataset"""
+        if self.df is None or 'Contractor' not in self.df.columns:
+            return None
+        
+        contractors = self.df['Contractor'].dropna().unique()
+        
+        contractors_data = {}
+        for contractor in contractors:
+            contractors_data[contractor] = self.df[self.df['Contractor'] == contractor]
+        
+        return self.contractor_analyzer.compare_contractors(contractors_data)
+
+    def analyze_learning_curve(self, rig_data, rig_name):
+        """Analyze rig learning curve"""
+        return self.learning_analyzer.generate_learning_curve_report(rig_data, rig_name)
+
+    def detect_invisible_lost_time(self, rig_data):
+        """Detect and analyze invisible lost time"""
+        return self.ilt_detector.detect_ilt(rig_data)
+
 class RigEfficiencyGUI:
     """Enhanced GUI Application for Rig Efficiency Analysis with Climate AI"""
     
@@ -2465,6 +4459,7 @@ class RigEfficiencyGUI:
         self.tab_comparison = tk.Frame(self.notebook, bg=self.colors['white'])
         self.tab_insights = tk.Frame(self.notebook, bg=self.colors['white'])
         self.tab_reports = tk.Frame(self.notebook, bg=self.colors['white'])
+        self.tab_ml_predictions = tk.Frame(self.notebook, bg=self.colors['white'])
         
         self.notebook.add(self.tab_home, text='🏠 Home')
         self.notebook.add(self.tab_rig_analysis, text='⚙️ Rig Analysis')
@@ -2473,6 +4468,7 @@ class RigEfficiencyGUI:
         self.notebook.add(self.tab_comparison, text='📈 Fleet Comparison')
         self.notebook.add(self.tab_insights, text='🤖 AI Insights')
         self.notebook.add(self.tab_reports, text='📄 Reports')
+        self.notebook.add(self.tab_ml_predictions, text='🤖 ML Predictions')
         
         # Setup each tab
         self.setup_home_tab()
@@ -2482,6 +4478,7 @@ class RigEfficiencyGUI:
         self.setup_comparison_tab()
         self.setup_insights_tab()
         self.setup_reports_tab()
+        self.setup_ml_predictions_tab()
     
     def setup_home_tab(self):
         """Setup home tab"""
@@ -3351,6 +5348,341 @@ class RigEfficiencyGUI:
         )
         self.report_preview.pack(fill='both', expand=True, padx=10, pady=10)
     
+    def setup_ml_predictions_tab(self):
+        """Setup ML predictions tab"""
+        header = tk.Frame(self.tab_ml_predictions, bg=self.colors['white'])
+        header.pack(fill='x', padx=10, pady=10)
+        
+        tk.Label(
+            header,
+            text="🤖 Machine Learning Rig-Well Match Predictions",
+            font=('Helvetica', 14, 'bold'),
+            bg=self.colors['white'],
+            fg=self.colors['primary']
+        ).pack(side='left')
+        
+        # Well parameters input section
+        params_frame = tk.LabelFrame(
+            self.tab_ml_predictions,
+            text="Target Well Parameters (Optional)",
+            font=('Helvetica', 11, 'bold'),
+            bg=self.colors['white']
+        )
+        params_frame.pack(fill='x', padx=10, pady=10)
+        
+        inputs_frame = tk.Frame(params_frame, bg=self.colors['white'])
+        inputs_frame.pack(padx=10, pady=10)
+        
+        # Create input fields
+        self.well_params = {}
+        
+        tk.Label(inputs_frame, text="Target Depth (m):", bg=self.colors['white']).grid(row=0, column=0, sticky='w', padx=5, pady=5)
+        self.well_params['depth_entry'] = tk.Entry(inputs_frame, width=15)
+        self.well_params['depth_entry'].insert(0, "3000")
+        self.well_params['depth_entry'].grid(row=0, column=1, padx=5, pady=5)
+        
+        tk.Label(inputs_frame, text="Formation Hardness (1-10):", bg=self.colors['white']).grid(row=0, column=2, sticky='w', padx=5, pady=5)
+        self.well_params['hardness_entry'] = tk.Entry(inputs_frame, width=15)
+        self.well_params['hardness_entry'].insert(0, "5")
+        self.well_params['hardness_entry'].grid(row=0, column=3, padx=5, pady=5)
+        
+        tk.Label(inputs_frame, text="Temperature (°C):", bg=self.colors['white']).grid(row=1, column=0, sticky='w', padx=5, pady=5)
+        self.well_params['temp_entry'] = tk.Entry(inputs_frame, width=15)
+        self.well_params['temp_entry'].insert(0, "150")
+        self.well_params['temp_entry'].grid(row=1, column=1, padx=5, pady=5)
+        
+        tk.Label(inputs_frame, text="Pressure (psi):", bg=self.colors['white']).grid(row=1, column=2, sticky='w', padx=5, pady=5)
+        self.well_params['pressure_entry'] = tk.Entry(inputs_frame, width=15)
+        self.well_params['pressure_entry'].insert(0, "5000")
+        self.well_params['pressure_entry'].grid(row=1, column=3, padx=5, pady=5)
+        
+        tk.Button(
+            params_frame,
+            text="🎯 Generate Predictions",
+            command=self.generate_ml_predictions,
+            bg=self.colors['success'],
+            fg=self.colors['white'],
+            font=('Helvetica', 10, 'bold'),
+            relief='flat',
+            cursor='hand2'
+        ).pack(pady=10)
+        
+        # Results container
+        results_container = tk.Frame(self.tab_ml_predictions, bg=self.colors['white'])
+        results_container.pack(fill='both', expand=True, padx=10, pady=10)
+        
+        canvas = tk.Canvas(results_container, bg=self.colors['white'])
+        scrollbar = tk.Scrollbar(results_container, orient="vertical", command=canvas.yview)
+        self.ml_results_frame = tk.Frame(canvas, bg=self.colors['white'])
+        
+        self.ml_results_frame.bind(
+            "<Configure>",
+            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+        )
+        
+        canvas.create_window((0, 0), window=self.ml_results_frame, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
+        
+        canvas.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
+
+    def generate_ml_predictions(self):
+        """Generate ML predictions for selected rig"""
+        if not self.current_rig_metrics:
+            messagebox.showinfo("Info", "Please analyze a rig first from the Rig Analysis tab")
+            return
+        
+        # Get well parameters
+        try:
+            well_params = {
+                'depth': float(self.well_params['depth_entry'].get()),
+                'hardness': float(self.well_params['hardness_entry'].get()),
+                'temperature': float(self.well_params['temp_entry'].get()),
+                'pressure': float(self.well_params['pressure_entry'].get())
+            }
+        except:
+            well_params = None
+        
+        # Generate predictions
+        rig_data = self.current_rig_metrics['data']
+        match_report = self.calculator.generate_rig_well_match_analysis(rig_data, well_params)
+        
+        # Display results
+        self.display_ml_predictions(match_report)
+        
+        self.status_var.set("ML predictions generated")
+
+    def display_ml_predictions(self, match_report):
+        """Display ML prediction results"""
+        # Clear existing results
+        for widget in self.ml_results_frame.winfo_children():
+            widget.destroy()
+        
+        predictions = match_report['predictions']
+        recommendation = match_report['recommendation']
+        
+        # Header
+        tk.Label(
+            self.ml_results_frame,
+            text=f"ML Predictions for: {self.current_rig_metrics['rig_name']}",
+            font=('Helvetica', 14, 'bold'),
+            bg=self.colors['white'],
+            fg=self.colors['primary']
+        ).pack(pady=10)
+        
+        # Recommendation Card
+        rec_colors = {
+            'HIGHLY RECOMMENDED': self.colors['success'],
+            'RECOMMENDED': self.colors['climate_blue'],
+            'CONDITIONAL': self.colors['warning'],
+            'NOT RECOMMENDED': self.colors['danger']
+        }
+        rec_color = rec_colors.get(recommendation['decision'], self.colors['secondary'])
+        
+        rec_card = tk.Frame(self.ml_results_frame, bg=rec_color, relief='raised', borderwidth=3)
+        rec_card.pack(fill='x', padx=20, pady=10)
+        
+        tk.Label(
+            rec_card,
+            text=f"🎯 {recommendation['decision']}",
+            font=('Helvetica', 18, 'bold'),
+            bg=rec_color,
+            fg=self.colors['white']
+        ).pack(pady=(15, 5))
+        
+        tk.Label(
+            rec_card,
+            text=f"Confidence: {recommendation['confidence']}",
+            font=('Helvetica', 12),
+            bg=rec_color,
+            fg=self.colors['white']
+        ).pack()
+        
+        tk.Label(
+            rec_card,
+            text=recommendation['rationale'],
+            font=('Helvetica', 10, 'italic'),
+            bg=rec_color,
+            fg=self.colors['white'],
+            wraplength=1200
+        ).pack(pady=(5, 15))
+        
+        # Key Metrics Grid
+        metrics_frame = tk.LabelFrame(
+            self.ml_results_frame,
+            text="Predicted Performance Metrics",
+            font=('Helvetica', 12, 'bold'),
+            bg=self.colors['white']
+        )
+        metrics_frame.pack(fill='x', padx=20, pady=10)
+        
+        metrics_grid = tk.Frame(metrics_frame, bg=self.colors['white'])
+        metrics_grid.pack(padx=10, pady=10)
+        
+        key_metrics = [
+            ('Match Score', predictions['match_score'], '%', True),
+            ('Expected Time', predictions['expected_time_days'], 'days', False),
+            ('AFE Probability', predictions['afe_probability'], '%', True),
+            ('Expected NPT', predictions['expected_npt_percent'], '%', False),
+            ('Risk Score', predictions['risk_score'], '', False),
+            ('Confidence', predictions['confidence_percent'], '%', True)
+        ]
+        
+        for i, (name, value, unit, higher_better) in enumerate(key_metrics):
+            row = i // 3
+            col = i % 3
+            
+            metric_card = tk.Frame(metrics_grid, bg=self.colors['light'], relief='groove', borderwidth=2)
+            metric_card.grid(row=row, column=col, padx=10, pady=10, sticky='nsew')
+            metrics_grid.grid_columnconfigure(col, weight=1)
+            
+            tk.Label(
+                metric_card,
+                text=name,
+                font=('Helvetica', 10, 'bold'),
+                bg=self.colors['light']
+            ).pack(pady=(10, 0))
+            
+            # Color based on value
+            if higher_better:
+                color = self._get_score_color(value)
+            else:
+                color = self._get_score_color(100 - value) if name == 'Risk Score' else self.colors['dark']
+            
+            tk.Label(
+                metric_card,
+                text=f"{value:.1f}{unit}",
+                font=('Helvetica', 18, 'bold'),
+                bg=self.colors['light'],
+                fg=color
+            ).pack()
+            
+            tk.Label(metric_card, text="", bg=self.colors['light']).pack(pady=5)
+        
+        # Recommended Dayrate
+        dayrate_frame = tk.LabelFrame(
+            self.ml_results_frame,
+            text="💰 Recommended Dayrate Range",
+            font=('Helvetica', 12, 'bold'),
+            bg=self.colors['white']
+        )
+        dayrate_frame.pack(fill='x', padx=20, pady=10)
+        
+        dayrate_info = predictions['recommended_dayrate_range']
+        
+        dayrate_display = tk.Frame(dayrate_frame, bg=self.colors['white'])
+        dayrate_display.pack(padx=20, pady=15)
+        
+        tk.Label(
+            dayrate_display,
+            text=f"Low: ${dayrate_info['low']:.0f}k",
+            font=('Helvetica', 12),
+            bg=self.colors['white']
+        ).pack(side='left', padx=20)
+        
+        tk.Label(
+            dayrate_display,
+            text=f"Optimal: ${dayrate_info['optimal']:.0f}k",
+            font=('Helvetica', 14, 'bold'),
+            bg=self.colors['white'],
+            fg=self.colors['success']
+        ).pack(side='left', padx=20)
+        
+        tk.Label(
+            dayrate_display,
+            text=f"High: ${dayrate_info['high']:.0f}k",
+            font=('Helvetica', 12),
+            bg=self.colors['white']
+        ).pack(side='left', padx=20)
+        
+        # Match Score Breakdown
+        if 'match_breakdown' in predictions:
+            match_frame = tk.LabelFrame(
+                self.ml_results_frame,
+                text="🎯 Match Score Breakdown",
+                font=('Helvetica', 12, 'bold'),
+                bg=self.colors['white']
+            )
+            match_frame.pack(fill='x', padx=20, pady=10)
+            
+            for factor, score in predictions['match_breakdown'].items():
+                factor_frame = tk.Frame(match_frame, bg=self.colors['white'])
+                factor_frame.pack(fill='x', padx=20, pady=5)
+                
+                tk.Label(
+                    factor_frame,
+                    text=f"{factor.replace('_', ' ').title()}:",
+                    font=('Helvetica', 10),
+                    bg=self.colors['white'],
+                    width=25,
+                    anchor='w'
+                ).pack(side='left')
+                
+                # Progress bar simulation
+                bar_frame = tk.Frame(factor_frame, bg='lightgray', height=20, width=300)
+                bar_frame.pack(side='left', padx=10)
+                bar_frame.pack_propagate(False)
+                
+                filled_width = int(300 * score / 100)
+                filled_bar = tk.Frame(bar_frame, bg=self._get_score_color(score), height=20, width=filled_width)
+                filled_bar.place(x=0, y=0)
+                
+                tk.Label(
+                    factor_frame,
+                    text=f"{score:.1f}%",
+                    font=('Helvetica', 10, 'bold'),
+                    bg=self.colors['white'],
+                    fg=self._get_score_color(score)
+                ).pack(side='left', padx=10)
+        
+        # Key Considerations
+        if match_report['key_considerations']:
+            consid_frame = tk.LabelFrame(
+                self.ml_results_frame,
+                text="⚠️ Key Considerations",
+                font=('Helvetica', 12, 'bold'),
+                bg=self.colors['white'],
+                fg=self.colors['warning']
+            )
+            consid_frame.pack(fill='x', padx=20, pady=10)
+            
+            for consideration in match_report['key_considerations']:
+                tk.Label(
+                    consid_frame,
+                    text=f"• {consideration}",
+                    font=('Helvetica', 10),
+                    bg='#FFF3E0',
+                    fg=self.colors['dark'],
+                    wraplength=1250,
+                    justify='left',
+                    padx=15,
+                    pady=8
+                ).pack(fill='x', padx=10, pady=2)
+        
+        # Risk Mitigation
+        if match_report['risk_mitigation']:
+            risk_frame = tk.LabelFrame(
+                self.ml_results_frame,
+                text="🛡️ Risk Mitigation Strategies",
+                font=('Helvetica', 12, 'bold'),
+                bg=self.colors['white'],
+                fg=self.colors['success']
+            )
+            risk_frame.pack(fill='x', padx=20, pady=10)
+            
+            for i, mitigation in enumerate(match_report['risk_mitigation'], 1):
+                tk.Label(
+                    risk_frame,
+                    text=f"{i}. {mitigation}",
+                    font=('Helvetica', 10),
+                    bg='#E8F5E9',
+                    fg=self.colors['dark'],
+                    wraplength=1250,
+                    justify='left',
+                    padx=15,
+                    pady=8
+                ).pack(fill='x', padx=10, pady=2)
+    
     def create_status_bar(self, parent):
         """Create status bar"""
         status_frame = tk.Frame(parent, bg=self.colors['dark'], height=30)
@@ -3529,14 +5861,28 @@ class RigEfficiencyGUI:
             
             # Calculate metrics
             metrics = self.calculator.calculate_comprehensive_efficiency(rig_data)
+
+            # Calculate Composite Rig Efficiency Index (REI)
+            try:
+                rei = self.calculator.calculate_composite_rei(rig_data)
+            except Exception:
+                rei = None
+            
+            # Calculate Regional Benchmark adjusted performance
+            try:
+                benchmark = self.calculator.calculate_benchmark_adjusted_performance(rig_data)
+            except Exception:
+                benchmark = None
             
             self.progress_var.set(70)
             
-            # Store metrics
+            # Store metrics (include REI and benchmark)
             self.current_rig_metrics = {
                 'rig_name': rig_name,
                 'metrics': metrics,
-                'data': rig_data
+                'data': rig_data,
+                'rei': rei,
+                'benchmark': benchmark
             }
             
             # Update UI
@@ -3734,6 +6080,130 @@ class RigEfficiencyGUI:
                 bg=self.colors['light'],
                 fg=self.colors['dark']
             ).pack(pady=(0, 10))
+        # --- Contract Efficiency Model (CER, UE, SAI) ---
+        try:
+            contract_metrics = self.calculator.calculate_contract_efficiency_metrics(rig_data)
+            contract_frame = tk.LabelFrame(
+                self.rig_results_frame,
+                text="Contract Efficiency Model (CER, UE, SAI)",
+                font=('Helvetica', 12, 'bold'),
+                bg=self.colors['white']
+            )
+            contract_frame.pack(fill='x', padx=20, pady=10)
+
+            contract_text = (
+                f"Cost Efficiency Ratio (CER): {contract_metrics.get('cost_efficiency_ratio', 0):.1f}%\n"
+                f"Utilization Efficiency (UE): {contract_metrics.get('utilization_efficiency', 0):.1f}%\n"
+                f"Schedule Adherence Index (SAI): {contract_metrics.get('schedule_adherence', 0):.1f}%\n"
+                f"Overall Contract Efficiency: {contract_metrics.get('overall_contract_efficiency', 0):.1f}%"
+            )
+
+            tk.Label(
+                contract_frame,
+                text=contract_text,
+                font=('Courier', 10),
+                bg=self.colors['light'],
+                fg=self.colors['dark'],
+                justify='left',
+                padx=15,
+                pady=10
+            ).pack(fill='x')
+        except Exception:
+            # If calculation fails, skip displaying contract metrics
+            pass
+        
+        # Composite Rig Efficiency Index (REI) display
+        rei = self.current_rig_metrics.get('rei')
+        if rei:
+            rei_frame = tk.LabelFrame(
+                self.rig_results_frame,
+                text="🔎 Composite Rig Efficiency Index (REI)",
+                font=('Helvetica', 12, 'bold'),
+                bg=self.colors['white']
+            )
+            rei_frame.pack(fill='x', padx=20, pady=10)
+
+            rei_score = rei.get('rei_score', 0)
+            rei_grade = rei.get('grade', '')
+
+            tk.Label(
+                rei_frame,
+                text=f"REI Score: {rei_score:.1f}%",
+                font=('Helvetica', 20, 'bold'),
+                bg=self.colors['white'],
+                fg=self._get_score_color(rei_score)
+            ).pack(pady=(10, 0))
+
+            tk.Label(
+                rei_frame,
+                text=f"Grade: {rei_grade}",
+                font=('Helvetica', 12),
+                bg=self.colors['white']
+            ).pack(pady=(0, 10))
+
+            # Components breakdown
+            comp_frame = tk.Frame(rei_frame, bg=self.colors['light'])
+            comp_frame.pack(fill='x', padx=10, pady=(0, 10))
+
+            components = rei.get('components', {})
+            for key, val in components.items():
+                tk.Label(
+                    comp_frame,
+                    text=f"{key.capitalize()}: {val:.1f}%",
+                    font=('Helvetica', 10),
+                    bg=self.colors['light']
+                ).pack(anchor='w', pady=2)
+        
+            # Regional Benchmark / Normalized Performance display
+            benchmark = self.current_rig_metrics.get('benchmark')
+            if benchmark:
+                bench_frame = tk.LabelFrame(
+                    self.rig_results_frame,
+                    text="📍 Regional Benchmark & Normalized Performance",
+                    font=('Helvetica', 12, 'bold'),
+                    bg=self.colors['white']
+                )
+                bench_frame.pack(fill='x', padx=20, pady=10)
+
+                overall_norm = benchmark.get('overall_normalized', None)
+                categories = benchmark.get('benchmark_used', [])
+                diff_mult = benchmark.get('difficulty_multiplier', 1.0)
+
+                tk.Label(
+                    bench_frame,
+                    text=f"Benchmark Categories: {', '.join(categories)}",
+                    font=('Helvetica', 10, 'italic'),
+                    bg=self.colors['white']
+                ).pack(anchor='w', padx=10, pady=(8, 0))
+
+                if overall_norm is not None:
+                    tk.Label(
+                        bench_frame,
+                        text=f"Normalized Score: {overall_norm:.1f}%",
+                        font=('Helvetica', 18, 'bold'),
+                        bg=self.colors['white'],
+                        fg=self._get_score_color(overall_norm)
+                    ).pack(anchor='w', padx=10, pady=(4, 4))
+
+                tk.Label(
+                    bench_frame,
+                    text=f"Difficulty Multiplier: x{diff_mult:.2f}",
+                    font=('Helvetica', 10),
+                    bg=self.colors['white']
+                ).pack(anchor='w', padx=10, pady=(0, 8))
+
+                # Breakdown
+                breakdown = ['rop_performance', 'npt_performance', 'time_performance', 'cost_performance']
+                for key in breakdown:
+                    if key in benchmark:
+                        val = benchmark.get(key, 0)
+                        pretty = key.replace('_', ' ').replace('performance', 'performance').title()
+                        tk.Label(
+                            bench_frame,
+                            text=f"{pretty}: {val:.1f}%",
+                            font=('Helvetica', 10),
+                            bg=self.colors['white']
+                        ).pack(anchor='w', padx=20, pady=2)
         
         # Climate AI Highlight Section
         climate_highlight = tk.LabelFrame(
@@ -4430,8 +6900,14 @@ class RigEfficiencyGUI:
         
         # Add data
         for idx, row in comparison_df.iterrows():
-            values = [f"{row[col]:.1f}" if isinstance(row[col], (int, float)) else row[col] 
-                     for col in comparison_df.columns]
+            values = []
+            for col in comparison_df.columns:
+                if isinstance(row[col], float):
+                    values.append(f"{row[col]:.1f}")
+                elif isinstance(row[col], int):
+                    values.append(f"{row[col]:.1f}")
+                else:
+                    values.append(str(row[col]))
             tree.insert('', 'end', values=values)
     def export_report(self, format_type):
         """Export report"""
